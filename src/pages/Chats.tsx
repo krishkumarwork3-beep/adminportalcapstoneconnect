@@ -5,7 +5,7 @@ import { Paperclip, Search, Trash2 } from "lucide-react";
 import { api, type ConversationRow, type MessageRow, type Page } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { formatDateTime, timeAgo } from "../lib/format";
-import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorNote, Input, PageHeader, Pagination, Spinner, cn, useDebounced, useToast } from "../components/ui";
+import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorNote, Input, PageHeader, Pagination, SelectionBar, Spinner, cn, useDebounced, useSelection, useToast } from "../components/ui";
 
 const PAGE_SIZE = 20;
 
@@ -18,6 +18,8 @@ export function ChatsPage() {
   const [page, setPage] = useState(1);
   const [openId, setOpenId] = useState<string | null>(null);
   const [deleting, setDeleting] = useState<MessageRow | null>(null);
+  const selection = useSelection();
+  const [deletingSelected, setDeletingSelected] = useState(false);
 
   const query = { q, page, page_size: PAGE_SIZE };
   const conversations = useQuery({ queryKey: ["conversations", query], queryFn: () => api<Page<ConversationRow>>("/conversations", { query }), placeholderData: keepPreviousData });
@@ -33,6 +35,18 @@ export function ChatsPage() {
     },
     onError: (e) => toast(e.message, "error"),
   });
+
+  const removeSelected = useMutation({
+    mutationFn: () => api<{ done: number }>("/messages/bulk-delete", { method: "POST", body: { ids: selection.ids } }),
+    onSuccess: (r) => {
+      toast(`Deleted ${r.done} message(s)`);
+      setDeletingSelected(false);
+      selection.clear();
+      void queryClient.invalidateQueries();
+    },
+    onError: (e) => toast(e.message, "error"),
+  });
+  const shown = messages.data ?? [];
 
   return (
     <>
@@ -55,7 +69,7 @@ export function ChatsPage() {
             <ul className="divide-y divide-slate-100">
               {conversations.data?.items.map((c) => (
                 <li key={c.id}>
-                  <button onClick={() => setOpenId(c.id)} className={cn("w-full px-4 py-3 text-left hover:bg-slate-50", c.id === openId && "bg-orange-50 hover:bg-orange-50")}>
+                  <button onClick={() => { setOpenId(c.id); selection.clear(); }} className={cn("w-full px-4 py-3 text-left hover:bg-slate-50", c.id === openId && "bg-orange-50 hover:bg-orange-50")}>
                     <span className="flex items-center justify-between gap-2">
                       <span className="truncate text-sm font-medium text-slate-900">{c.title}</span>
                       <span className="shrink-0 text-xs text-slate-400">{timeAgo(c.last_message_at)}</span>
@@ -74,6 +88,13 @@ export function ChatsPage() {
         </Card>
 
         <Card title={open ? open.title : "Messages"} actions={open ? <span className="text-xs text-slate-500">{open.participants.join(", ")}</span> : null}>
+          {canEdit && openId ? (
+            <SelectionBar selection={selection} total={shown.length} noun="messages" onSelectAll={() => shown.map((m) => m.id)}>
+              <Button size="sm" variant="danger" onClick={() => setDeletingSelected(true)}>
+                <Trash2 className="h-4 w-4" /> Delete selected
+              </Button>
+            </SelectionBar>
+          ) : null}
           {!openId ? (
             <EmptyState>Pick a conversation to read it.</EmptyState>
           ) : messages.isLoading ? (
@@ -85,7 +106,8 @@ export function ChatsPage() {
           ) : (
             <ul className="max-h-[65vh] divide-y divide-slate-100 overflow-y-auto">
               {messages.data?.map((m) => (
-                <li key={m.id} className="group flex items-start gap-3 px-4 py-3">
+                <li key={m.id} className={cn("group flex items-start gap-3 px-4 py-3", selection.has(m.id) && "bg-orange-50/60")}>
+                  {canEdit ? <input type="checkbox" className="mt-1" checked={selection.has(m.id)} onChange={() => selection.toggle(m.id)} aria-label={`Select the message from ${m.sender_name}`} /> : null}
                   <div className="min-w-0 flex-1">
                     <p className="text-xs text-slate-500">
                       {m.sender_id ? <Link className="font-medium text-slate-800 hover:underline" to={`/students/${m.sender_id}`}>{m.sender_name}</Link> : <span className="font-medium">{m.sender_name}</span>}
@@ -120,6 +142,16 @@ export function ChatsPage() {
         busy={remove.isPending}
         onConfirm={() => deleting && remove.mutate(deleting.id)}
         onClose={() => setDeleting(null)}
+      />
+      <ConfirmDialog
+        open={deletingSelected}
+        title={`Delete ${selection.size} message(s)?`}
+        message="They disappear for everyone in the conversation. This can't be undone."
+        confirmLabel="Delete messages"
+        danger
+        busy={removeSelected.isPending}
+        onConfirm={() => removeSelected.mutate()}
+        onClose={() => setDeletingSelected(false)}
       />
     </>
   );

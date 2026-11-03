@@ -5,7 +5,7 @@ import { Search } from "lucide-react";
 import { api, type BlockedNumber } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { formatDateTime } from "../lib/format";
-import { Button, Card, ConfirmDialog, EmptyState, ErrorNote, Field, Input, PageHeader, Spinner, Table, Textarea, useDebounced, useToast } from "../components/ui";
+import { Button, Card, ConfirmDialog, EmptyState, ErrorNote, Field, Input, PageCheckbox, PageHeader, SelectionBar, Spinner, Table, Textarea, useDebounced, useSelection, useToast } from "../components/ui";
 
 export function BlockedNumbersPage() {
   const { canEdit } = useAuth();
@@ -16,6 +16,8 @@ export function BlockedNumbersPage() {
   const [numbers, setNumbers] = useState("");
   const [reason, setReason] = useState("");
   const [removing, setRemoving] = useState<BlockedNumber | null>(null);
+  const selection = useSelection();
+  const [removingSelected, setRemovingSelected] = useState(false);
   const list = useQuery({ queryKey: ["blocked", q], queryFn: () => api<BlockedNumber[]>("/banned-phones", { query: { q } }) });
 
   const add = useMutation({
@@ -45,6 +47,18 @@ export function BlockedNumbersPage() {
     onError: (e) => toast(e.message, "error"),
   });
 
+  const removeSelected = useMutation({
+    mutationFn: () => api<{ done: number }>("/banned-phones/bulk-delete", { method: "POST", body: { ids: selection.ids } }),
+    onSuccess: (r) => {
+      toast(`Unblocked ${r.done} number(s)`);
+      setRemovingSelected(false);
+      selection.clear();
+      void queryClient.invalidateQueries();
+    },
+    onError: (e) => toast(e.message, "error"),
+  });
+  const rows = list.data ?? [];
+
   const submit = (event: FormEvent) => {
     event.preventDefault();
     add.mutate();
@@ -71,9 +85,14 @@ export function BlockedNumbersPage() {
           <div className="border-b border-slate-200 p-3">
             <div className="relative">
               <Search className="pointer-events-none absolute top-2.5 left-2.5 h-4 w-4 text-slate-400" />
-              <Input value={search} onChange={(e) => setSearch(e.target.value)} placeholder="Find a number" className="pl-8" aria-label="Find a number" />
+              <Input value={search} onChange={(e) => { setSearch(e.target.value); selection.clear(); }} placeholder="Find a number" className="pl-8" aria-label="Find a number" />
             </div>
           </div>
+          {canEdit ? (
+            <SelectionBar selection={selection} total={rows.length} noun="numbers" onSelectAll={() => rows.map((b) => b.phone_normalized)}>
+              <Button size="sm" variant="danger" onClick={() => setRemovingSelected(true)}>Unblock selected</Button>
+            </SelectionBar>
+          ) : null}
           {list.isLoading ? (
             <Spinner />
           ) : list.error ? (
@@ -81,9 +100,14 @@ export function BlockedNumbersPage() {
           ) : list.data?.length === 0 ? (
             <EmptyState>No blocked numbers.</EmptyState>
           ) : (
-            <Table head={<><th>Number</th><th>Account</th><th>Reason</th><th>Blocked</th>{canEdit ? <th /> : null}</>}>
+            <Table head={<>{canEdit ? <th className="w-10"><PageCheckbox selection={selection} ids={rows.map((b) => b.phone_normalized)} label="Select all numbers" /></th> : null}<th>Number</th><th>Account</th><th>Reason</th><th>Blocked</th>{canEdit ? <th /> : null}</>}>
               {list.data?.map((b) => (
                 <tr key={b.phone_normalized}>
+                  {canEdit ? (
+                    <td>
+                      <input type="checkbox" checked={selection.has(b.phone_normalized)} onChange={() => selection.toggle(b.phone_normalized)} aria-label={`Select +${b.phone_normalized}`} />
+                    </td>
+                  ) : null}
                   <td className="whitespace-nowrap tabular-nums">+{b.phone_normalized}</td>
                   <td>{b.account_id ? <Link className="hover:underline" to={`/students/${b.account_id}`}>{b.account_name}</Link> : <span className="text-slate-400">no account</span>}</td>
                   <td className="max-w-64 truncate text-slate-600">{b.reason ?? "—"}</td>
@@ -110,6 +134,15 @@ export function BlockedNumbersPage() {
         busy={remove.isPending}
         onConfirm={() => removing && remove.mutate(removing.phone_normalized)}
         onClose={() => setRemoving(null)}
+      />
+      <ConfirmDialog
+        open={removingSelected}
+        title={`Unblock ${selection.size} number(s)?`}
+        message="They can be used to sign up and sign in again (accounts that are also suspended stay suspended)."
+        confirmLabel="Unblock"
+        busy={removeSelected.isPending}
+        onConfirm={() => removeSelected.mutate()}
+        onClose={() => setRemovingSelected(false)}
       />
     </>
   );

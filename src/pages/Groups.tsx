@@ -5,18 +5,36 @@ import { ArrowLeft, Search, Trash2, UserMinus } from "lucide-react";
 import { api, type GroupDetail, type GroupRow, type Page } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { formatDate, formatDateTime } from "../lib/format";
-import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorNote, Input, PageHeader, Pagination, Select, Spinner, Table, useDebounced, useToast } from "../components/ui";
+import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorNote, Input, PageCheckbox, PageHeader, Pagination, Select, SelectionBar, Spinner, Table, useDebounced, useSelection, useToast } from "../components/ui";
 
 const PAGE_SIZE = 25;
 
 export function GroupsPage() {
+  const { canEdit } = useAuth();
+  const toast = useToast();
+  const queryClient = useQueryClient();
   const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const q = useDebounced(search);
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
+  const selection = useSelection();
+  const [deleting, setDeleting] = useState(false);
   const query = { q, status, page, page_size: PAGE_SIZE };
   const groups = useQuery({ queryKey: ["groups", query], queryFn: () => api<Page<GroupRow>>("/groups", { query }), placeholderData: keepPreviousData });
+  const items = groups.data?.items ?? [];
+
+  const destroy = useMutation({
+    mutationFn: () => api<{ done: number }>("/groups/bulk-delete", { method: "POST", body: { ids: selection.ids } }),
+    onSuccess: (r) => {
+      toast(`Deleted ${r.done} group(s)`);
+      setDeleting(false);
+      selection.clear();
+      setPage(1);
+      void queryClient.invalidateQueries();
+    },
+    onError: (e) => toast(e.message, "error"),
+  });
 
   return (
     <>
@@ -25,24 +43,36 @@ export function GroupsPage() {
         <div className="flex flex-wrap gap-2 border-b border-slate-200 p-3">
           <div className="relative min-w-56 flex-1">
             <Search className="pointer-events-none absolute top-2.5 left-2.5 h-4 w-4 text-slate-400" />
-            <Input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search name, domain or id" className="pl-8" aria-label="Search groups" />
+            <Input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); selection.clear(); }} placeholder="Search name, domain or id" className="pl-8" aria-label="Search groups" />
           </div>
-          <Select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); }} className="w-auto" aria-label="Status">
+          <Select value={status} onChange={(e) => { setStatus(e.target.value); setPage(1); selection.clear(); }} className="w-auto" aria-label="Status">
             <option value="all">All groups</option>
             <option value="open">Has open seats</option>
             <option value="full">Full</option>
           </Select>
         </div>
+        {canEdit ? (
+          <SelectionBar selection={selection} total={groups.data?.total ?? 0} noun="groups" onSelectAll={() => api<string[]>("/groups/ids", { query: { q, status } })}>
+            <Button size="sm" variant="danger" onClick={() => setDeleting(true)}>
+              <Trash2 className="h-4 w-4" /> Delete selected
+            </Button>
+          </SelectionBar>
+        ) : null}
         {groups.isLoading ? (
           <Spinner />
         ) : groups.error ? (
           <ErrorNote error={groups.error} />
-        ) : groups.data?.items.length === 0 ? (
+        ) : items.length === 0 ? (
           <EmptyState>No groups match.</EmptyState>
         ) : (
-          <Table head={<><th>Group</th><th>Domain</th><th>Group Lead</th><th>Seats</th><th>Created</th></>}>
-            {groups.data?.items.map((g) => (
+          <Table head={<>{canEdit ? <th className="w-10"><PageCheckbox selection={selection} ids={items.map((g) => g.id)} /></th> : null}<th>Group</th><th>Domain</th><th>Group Lead</th><th>Seats</th><th>Created</th></>}>
+            {items.map((g) => (
               <tr key={g.id} className="cursor-pointer hover:bg-slate-50" onClick={() => navigate(`/groups/${g.id}`)}>
+                {canEdit ? (
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <input type="checkbox" checked={selection.has(g.id)} onChange={() => selection.toggle(g.id)} aria-label={`Select ${g.name}`} />
+                  </td>
+                ) : null}
                 <td>
                   <Link to={`/groups/${g.id}`} className="font-medium text-slate-900 hover:underline" onClick={(e) => e.stopPropagation()}>{g.name}</Link>
                   <div className="text-xs text-slate-400">{g.id}</div>
@@ -61,6 +91,16 @@ export function GroupsPage() {
         )}
         {groups.data ? <Pagination page={page} pageSize={PAGE_SIZE} total={groups.data.total} onPage={setPage} /> : null}
       </Card>
+      <ConfirmDialog
+        open={deleting}
+        title={`Delete ${selection.size} group(s)?`}
+        message="Each group and its group chat are deleted, their pending requests are cancelled, and every member becomes free to join another group. This can't be undone."
+        confirmLabel="Delete groups"
+        danger
+        busy={destroy.isPending}
+        onConfirm={() => destroy.mutate()}
+        onClose={() => setDeleting(false)}
+      />
     </>
   );
 }

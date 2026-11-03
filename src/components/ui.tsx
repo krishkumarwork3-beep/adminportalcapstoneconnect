@@ -266,6 +266,91 @@ export function useToast() {
   return useContext(ToastContext);
 }
 
+// --- Selection ----------------------------------------------------------------------------------
+
+/** Ticked rows of a list, by id. */
+export function useSelection() {
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const toggle = useCallback((id: string) => setSelected((set) => {
+    const next = new Set(set);
+    if (next.has(id)) next.delete(id);
+    else next.add(id);
+    return next;
+  }), []);
+  /** Header checkbox: ticks the given rows, or unticks them when they are all ticked already. */
+  const togglePage = useCallback((ids: string[]) => setSelected((set) => {
+    const next = new Set(set);
+    if (ids.every((id) => next.has(id))) ids.forEach((id) => next.delete(id));
+    else ids.forEach((id) => next.add(id));
+    return next;
+  }), []);
+  const clear = useCallback(() => setSelected(new Set()), []);
+  const selectAll = useCallback((ids: string[]) => setSelected(new Set(ids)), []);
+  return { selected, size: selected.size, ids: [...selected], has: (id: string) => selected.has(id), toggle, togglePage, clear, selectAll };
+}
+
+export type Selection = ReturnType<typeof useSelection>;
+
+/** Header checkbox for the rows on screen. */
+export function PageCheckbox({ selection, ids, label = "Select all on this page" }: { selection: Selection; ids: string[]; label?: string }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const ticked = ids.filter((id) => selection.has(id)).length;
+  useEffect(() => {
+    if (ref.current) ref.current.indeterminate = ticked > 0 && ticked < ids.length;
+  }, [ticked, ids.length]);
+  return <input ref={ref} type="checkbox" checked={ids.length > 0 && ticked === ids.length} onChange={() => selection.togglePage(ids)} aria-label={label} />;
+}
+
+/**
+ * The bar above a list: "Select all N" (every match, across pages), then, once rows are ticked,
+ * how many and what can be done with them.
+ */
+export function SelectionBar({ selection, total, noun, onSelectAll, children }: {
+  selection: Selection;
+  /** Every row that can be selected (all pages). */
+  total: number;
+  noun: string;
+  /** Ids of every matching row: fetched from the API, or the rows on screen when there is one page. */
+  onSelectAll: () => Promise<string[]> | string[];
+  children: ReactNode;
+}) {
+  const [loading, setLoading] = useState(false);
+  const toast = useToast();
+  if (total === 0) return null;
+  const selectAll = async () => {
+    setLoading(true);
+    try {
+      selection.selectAll(await onSelectAll());
+    } catch (e) {
+      toast(e instanceof Error ? e.message : String(e), "error");
+    } finally {
+      setLoading(false);
+    }
+  };
+  const all = selection.size >= total;
+  return (
+    <div className={cn("flex min-h-12 flex-wrap items-center gap-2 border-b px-4 py-2 text-sm", selection.size ? "border-orange-200 bg-orange-50" : "border-slate-200")}>
+      {selection.size ? (
+        <span className="font-medium text-orange-900">
+          {all ? `All ${selection.size.toLocaleString("en-IN")}` : selection.size.toLocaleString("en-IN")} {noun} selected
+        </span>
+      ) : null}
+      {!all ? (
+        <Button size="sm" variant={selection.size ? "ghost" : "secondary"} busy={loading} onClick={selectAll}>
+          Select all {total.toLocaleString("en-IN")}
+        </Button>
+      ) : null}
+      {selection.size ? (
+        <>
+          <span className="mx-1 h-5 w-px bg-orange-200" aria-hidden />
+          {children}
+          <Button size="sm" variant="ghost" onClick={selection.clear}>Clear selection</Button>
+        </>
+      ) : null}
+    </div>
+  );
+}
+
 /** Debounced copy of a value (search boxes). */
 export function useDebounced<T>(value: T, ms = 300): T {
   const [debounced, setDebounced] = useState(value);

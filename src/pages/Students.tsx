@@ -1,11 +1,11 @@
 import { useState, type FormEvent } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
-import { Download, Plus, Search } from "lucide-react";
+import { Download, Plus, Search, Trash2 } from "lucide-react";
 import { api, buildUrl, type Page, type Student, type StudentDetail } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { timeAgo } from "../lib/format";
-import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorNote, Field, Input, Modal, PageHeader, Pagination, Select, Spinner, Table, Textarea, useDebounced, useToast } from "../components/ui";
+import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorNote, Field, Input, Modal, PageCheckbox, PageHeader, Pagination, Select, SelectionBar, Spinner, Table, Textarea, useDebounced, useSelection, useToast } from "../components/ui";
 
 const PAGE_SIZE = 25;
 
@@ -33,7 +33,7 @@ export function StudentsPage() {
   const college = params.get("college") ?? "";
   const sort = params.get("sort") ?? "newest";
   const page = Number(params.get("page") ?? 1);
-  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const selection = useSelection();
   const [adding, setAdding] = useState(false);
   const [bulk, setBulk] = useState<"ban" | "unban" | "delete" | null>(null);
   const [bulkReason, setBulkReason] = useState("");
@@ -44,7 +44,7 @@ export function StudentsPage() {
     else next.delete(key);
     if (key !== "page") next.delete("page");
     setParams(next, { replace: true });
-    setSelected(new Set());
+    if (key !== "page") selection.clear();
   };
 
   const query = { q, status, college, sort, page, page_size: PAGE_SIZE };
@@ -52,26 +52,18 @@ export function StudentsPage() {
   const colleges = useQuery({ queryKey: ["colleges"], queryFn: () => api<string[]>("/users/colleges") });
 
   const bulkAction = useMutation({
-    mutationFn: () => api<{ done: number; skipped: string[] }>("/users/bulk", { method: "POST", body: { ids: [...selected], action: bulk, reason: bulkReason } }),
+    mutationFn: () => api<{ done: number; skipped: string[] }>("/users/bulk", { method: "POST", body: { ids: selection.ids, action: bulk, reason: bulkReason } }),
     onSuccess: (result) => {
       toast(`${bulk === "ban" ? "Suspended" : bulk === "unban" ? "Lifted suspension of" : "Deleted"} ${result.done} student(s)`);
       setBulk(null);
       setBulkReason("");
-      setSelected(new Set());
+      selection.clear();
       void queryClient.invalidateQueries();
     },
     onError: (e) => toast(e.message, "error"),
   });
 
   const items = students.data?.items ?? [];
-  const allOnPage = items.length > 0 && items.every((s) => selected.has(s.id));
-  const toggleAll = () => setSelected(allOnPage ? new Set() : new Set(items.map((s) => s.id)));
-  const toggle = (id: string) => setSelected((set) => {
-    const next = new Set(set);
-    if (next.has(id)) next.delete(id);
-    else next.add(id);
-    return next;
-  });
   const exportUrl = buildUrl("/users/export.csv", { q, status, college });
 
   return (
@@ -131,14 +123,14 @@ export function StudentsPage() {
           </Select>
         </div>
 
-        {canEdit && selected.size > 0 ? (
-          <div className="flex flex-wrap items-center gap-2 border-b border-orange-200 bg-orange-50 px-4 py-2 text-sm">
-            <span className="font-medium text-orange-900">{selected.size} selected</span>
+        {canEdit ? (
+          <SelectionBar selection={selection} total={students.data?.total ?? 0} noun="students" onSelectAll={() => api<string[]>("/users/ids", { query: { q, status, college } })}>
             <Button size="sm" onClick={() => setBulk("ban")}>Suspend</Button>
             <Button size="sm" onClick={() => setBulk("unban")}>Lift suspension</Button>
-            <Button size="sm" variant="danger" onClick={() => setBulk("delete")}>Delete</Button>
-            <Button size="sm" variant="ghost" onClick={() => setSelected(new Set())}>Clear</Button>
-          </div>
+            <Button size="sm" variant="danger" onClick={() => setBulk("delete")}>
+              <Trash2 className="h-4 w-4" /> Delete selected
+            </Button>
+          </SelectionBar>
         ) : null}
 
         {students.isLoading ? (
@@ -153,7 +145,7 @@ export function StudentsPage() {
               <>
                 {canEdit ? (
                   <th className="w-10">
-                    <input type="checkbox" checked={allOnPage} onChange={toggleAll} aria-label="Select all on this page" />
+                    <PageCheckbox selection={selection} ids={items.map((s) => s.id)} />
                   </th>
                 ) : null}
                 <th>Student</th>
@@ -169,7 +161,7 @@ export function StudentsPage() {
               <tr key={s.id} className="cursor-pointer hover:bg-slate-50" onClick={() => navigate(`/students/${s.id}`)}>
                 {canEdit ? (
                   <td onClick={(e) => e.stopPropagation()}>
-                    <input type="checkbox" checked={selected.has(s.id)} onChange={() => toggle(s.id)} aria-label={`Select ${s.name}`} />
+                    <input type="checkbox" checked={selection.has(s.id)} onChange={() => selection.toggle(s.id)} aria-label={`Select ${s.name}`} />
                   </td>
                 ) : null}
                 <td>
@@ -199,7 +191,7 @@ export function StudentsPage() {
 
       <ConfirmDialog
         open={bulk !== null}
-        title={bulk === "delete" ? `Delete ${selected.size} student(s)?` : bulk === "ban" ? `Suspend ${selected.size} student(s)?` : `Lift ${selected.size} suspension(s)?`}
+        title={bulk === "delete" ? `Delete ${selection.size} student(s)?` : bulk === "ban" ? `Suspend ${selection.size} student(s)?` : `Lift ${selection.size} suspension(s)?`}
         message={
           bulk === "delete"
             ? "Their accounts, requests and chat memberships are removed for good. Group Leads hand their group to the longest-serving member."
