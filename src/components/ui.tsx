@@ -123,12 +123,23 @@ export function EmptyState({ children }: { children: ReactNode }) {
   return <div className="p-8 text-center text-sm text-slate-500">{children}</div>;
 }
 
+// Errors from JavaScript itself (a bug…) carry internal text: never shown.
+const INTERNAL_ERRORS = [TypeError, ReferenceError, SyntaxError, RangeError, EvalError, URIError];
+
+/** The API's own message (written for people), or a plain one: never a stack or internals. */
+export function friendlyError(error: unknown): string {
+  if (!(error instanceof Error) || !error.message || INTERNAL_ERRORS.some((kind) => error instanceof kind)) {
+    return "Something went wrong. Try again.";
+  }
+  return error.message.slice(0, 300);
+}
+
 export function ErrorNote({ error }: { error: unknown }) {
   if (!error) return null;
   return (
     <div className="m-4 flex items-start gap-2 rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-800" role="alert">
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
-      {error instanceof Error ? error.message : String(error)}
+      {friendlyError(error)}
     </div>
   );
 }
@@ -322,7 +333,7 @@ export function SelectionBar({ selection, total, noun, onSelectAll, children }: 
     try {
       selection.selectAll(await onSelectAll());
     } catch (e) {
-      toast(e instanceof Error ? e.message : String(e), "error");
+      toast(friendlyError(e), "error");
     } finally {
       setLoading(false);
     }

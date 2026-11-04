@@ -5,7 +5,7 @@ import { ArrowLeft, Crown, Pencil, Search, Trash2, UserMinus } from "lucide-reac
 import { api, type GroupDetail, type GroupRow, type Page } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { formatDate, formatDateTime } from "../lib/format";
-import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorNote, Field, Input, Modal, PageCheckbox, Textarea, PageHeader, Pagination, Select, SelectionBar, Spinner, Table, useDebounced, useSelection, useToast } from "../components/ui";
+import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorNote, Field, Input, Modal, PageCheckbox, Textarea, PageHeader, Pagination, Select, SelectionBar, Spinner, Table, useDebounced, useSelection, useToast, friendlyError } from "../components/ui";
 
 const PAGE_SIZE = 25;
 
@@ -33,7 +33,7 @@ export function GroupsPage() {
       setPage(1);
       void queryClient.invalidateQueries();
     },
-    onError: (e) => toast(e.message, "error"),
+    onError: (e) => toast(friendlyError(e), "error"),
   });
 
   return (
@@ -129,7 +129,7 @@ export function GroupPage() {
       queryClient.setQueryData(["group", id], detail);
       void queryClient.invalidateQueries({ queryKey: ["groups"] });
     },
-    onError: (e) => toast(e.message, "error"),
+    onError: (e) => toast(friendlyError(e), "error"),
   });
   const makeLead = useMutation({
     mutationFn: (userId: string) => api<GroupDetail>(`/groups/${id}/lead`, { method: "POST", body: { user_id: userId } }),
@@ -139,7 +139,7 @@ export function GroupPage() {
       queryClient.setQueryData(["group", id], detail);
       void queryClient.invalidateQueries({ queryKey: ["groups"] });
     },
-    onError: (e) => toast(e.message, "error"),
+    onError: (e) => toast(friendlyError(e), "error"),
   });
 
   const remove = useMutation({
@@ -149,7 +149,7 @@ export function GroupPage() {
       setRemoving(null);
       void queryClient.invalidateQueries();
     },
-    onError: (e) => toast(e.message, "error"),
+    onError: (e) => toast(friendlyError(e), "error"),
   });
   const destroy = useMutation({
     mutationFn: () => api(`/groups/${id}`, { method: "DELETE" }),
@@ -158,7 +158,7 @@ export function GroupPage() {
       void queryClient.invalidateQueries();
       navigate("/groups");
     },
-    onError: (e) => toast(e.message, "error"),
+    onError: (e) => toast(friendlyError(e), "error"),
   });
 
   if (group.isLoading) return <Spinner />;

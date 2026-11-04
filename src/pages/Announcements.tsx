@@ -4,7 +4,7 @@ import { Megaphone, Plus } from "lucide-react";
 import { api, type AnnouncementRow } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { formatDateTime } from "../lib/format";
-import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorNote, Field, Input, Modal, PageHeader, Select, Spinner, Table, Textarea, useToast } from "../components/ui";
+import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorNote, Field, Input, Modal, PageHeader, Select, Spinner, Table, Textarea, useToast, friendlyError } from "../components/ui";
 
 type Form = { text: string; link_url: string; link_label: string; level: "info" | "warning"; starts_at: string; ends_at: string };
 const empty: Form = { text: "", link_url: "", link_label: "", level: "info", starts_at: "", ends_at: "" };
@@ -46,7 +46,7 @@ export function AnnouncementsPage() {
       setEditing(null);
       void queryClient.invalidateQueries();
     },
-    onError: (e) => toast(e.message, "error"),
+    onError: (e) => toast(friendlyError(e), "error"),
   });
   const remove = useMutation({
     mutationFn: (id: string) => api(`/announcements/${id}`, { method: "DELETE" }),
@@ -55,7 +55,7 @@ export function AnnouncementsPage() {
       setDeleting(null);
       void queryClient.invalidateQueries();
     },
-    onError: (e) => toast(e.message, "error"),
+    onError: (e) => toast(friendlyError(e), "error"),
   });
 
   const submit = (event: FormEvent) => {

@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { api, type Page, type ReportRow } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { timeAgo } from "../lib/format";
-import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorNote, Field, Input, PageHeader, Pagination, Select, Spinner, Table, useToast } from "../components/ui";
+import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorNote, Field, Input, PageHeader, Pagination, Select, Spinner, Table, useToast, friendlyError } from "../components/ui";
 
 const PAGE_SIZE = 25;
 const STATUS_TONE: Record<string, "amber" | "green" | "gray" | "blue" | "red"> = { open: "amber", reviewed: "blue", dismissed: "gray", actioned: "green" };
@@ -44,7 +44,7 @@ export function ReportsPage() {
       setReason("");
       void queryClient.invalidateQueries();
     },
-    onError: (e) => toast(e.message, "error"),
+    onError: (e) => toast(friendlyError(e), "error"),
   });
 
   const confirmText: Record<Action["kind"], { title: string; message: string; label: string; danger: boolean }> = {

@@ -87,3 +87,14 @@ test("no cross-window messaging; redirects after log-in come only from in-app st
   const login = all.find((f) => f.file === "src/pages/Login.tsx")!.text;
   assert.doesNotMatch(login, /searchParams|URLSearchParams|location\.search|window\.location\s*=/);
 });
+
+test("the portal never shows raw error text or stack traces", () => {
+  const bad: string[] = [];
+  for (const { file, text } of sources()) {
+    for (const m of text.matchAll(/\b(e|err|error|exc)\.(message|stack)\b/g)) {
+      const line = text.slice(text.lastIndexOf("\n", m.index) + 1, text.indexOf("\n", m.index));
+      if (!/friendlyError|error\.message\.slice|instanceof kind|!error\.message/.test(line)) bad.push(`${file}: ${line.trim()}`);
+    }
+  }
+  assert.deepEqual(bad, []);
+});

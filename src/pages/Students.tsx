@@ -5,7 +5,7 @@ import { Download, Plus, Search, Trash2 } from "lucide-react";
 import { api, buildUrl, type Page, type Student, type StudentDetail } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { timeAgo } from "../lib/format";
-import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorNote, Field, Input, Modal, PageCheckbox, PageHeader, Pagination, Select, SelectionBar, Spinner, Table, Textarea, useDebounced, useSelection, useToast } from "../components/ui";
+import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorNote, Field, Input, Modal, PageCheckbox, PageHeader, Pagination, Select, SelectionBar, Spinner, Table, Textarea, useDebounced, useSelection, useToast, friendlyError } from "../components/ui";
 
 const PAGE_SIZE = 25;
 
@@ -60,7 +60,7 @@ export function StudentsPage() {
       selection.clear();
       void queryClient.invalidateQueries();
     },
-    onError: (e) => toast(e.message, "error"),
+    onError: (e) => toast(friendlyError(e), "error"),
   });
 
   const items = students.data?.items ?? [];
@@ -238,7 +238,7 @@ function AddStudent({ open, onClose }: { open: boolean; onClose: () => void }) {
       void queryClient.invalidateQueries();
       navigate(`/students/${student.id}`);
     },
-    onError: (e) => toast(e.message, "error"),
+    onError: (e) => toast(friendlyError(e), "error"),
   });
 
   const submit = (event: FormEvent) => {

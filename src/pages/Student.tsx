@@ -6,7 +6,7 @@ import { api, type StudentDetail } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { formatDateTime, timeAgo } from "../lib/format";
 import { safeHref } from "../lib/security/safe-url";
-import { Badge, Button, Card, ConfirmDialog, ErrorNote, Field, Input, Modal, Spinner, Textarea, useToast } from "../components/ui";
+import { Badge, Button, Card, ConfirmDialog, ErrorNote, Field, Input, Modal, Spinner, Textarea, useToast, friendlyError } from "../components/ui";
 import { StatusBadges } from "./Students";
 
 type Form = { name: string; phone: string; college: string; department: string; passing_year: string; github_url: string; skills: string; bio: string };
@@ -44,7 +44,7 @@ export function StudentPage() {
     if (data) queryClient.setQueryData(["student", id], data);
     void queryClient.invalidateQueries({ predicate: (q) => q.queryKey[0] !== "student" });
   };
-  const fail = (e: Error) => toast(e.message, "error");
+  const fail = (e: Error) => toast(friendlyError(e), "error");
 
   const save = useMutation({
     mutationFn: (f: Form) =>

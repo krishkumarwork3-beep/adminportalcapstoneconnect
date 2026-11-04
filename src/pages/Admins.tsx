@@ -4,7 +4,7 @@ import { Plus } from "lucide-react";
 import { api, type Admin, type AdminRole } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { formatDateTime, timeAgo } from "../lib/format";
-import { Badge, Button, Card, ConfirmDialog, ErrorNote, Field, Input, Modal, PageHeader, Select, Spinner, Table, useToast } from "../components/ui";
+import { Badge, Button, Card, ConfirmDialog, ErrorNote, Field, Input, Modal, PageHeader, Select, Spinner, Table, useToast, friendlyError } from "../components/ui";
 
 export function AdminsPage() {
   const { admin: me, canEdit } = useAuth();
@@ -17,7 +17,7 @@ export function AdminsPage() {
     toast(text);
     void queryClient.invalidateQueries({ queryKey: ["admins"] });
   };
-  const fail = (e: Error) => toast(e.message, "error");
+  const fail = (e: Error) => toast(friendlyError(e), "error");
 
   const update = useMutation({
     mutationFn: ({ id, body }: { id: string; body: Partial<Pick<Admin, "role" | "active">> }) => api<Admin>(`/admins/${id}`, { method: "PATCH", body }),
@@ -116,7 +116,7 @@ function AddAdmin({ open, onClose }: { open: boolean; onClose: () => void }) {
       onClose();
       void queryClient.invalidateQueries({ queryKey: ["admins"] });
     },
-    onError: (e) => toast(e.message, "error"),
+    onError: (e) => toast(friendlyError(e), "error"),
   });
   const submit = (event: FormEvent) => {
     event.preventDefault();
@@ -158,7 +158,7 @@ function ChangePassword() {
       setCurrent("");
       setNext("");
     },
-    onError: (e) => toast(e.message, "error"),
+    onError: (e) => toast(friendlyError(e), "error"),
   });
   const submit = (event: FormEvent) => {
     event.preventDefault();

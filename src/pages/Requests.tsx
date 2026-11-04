@@ -4,7 +4,7 @@ import { Link } from "react-router-dom";
 import { api, type Page, type RequestRow } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { timeAgo } from "../lib/format";
-import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorNote, PageCheckbox, PageHeader, Pagination, Select, SelectionBar, Spinner, Table, useSelection, useToast } from "../components/ui";
+import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorNote, PageCheckbox, PageHeader, Pagination, Select, SelectionBar, Spinner, Table, useSelection, useToast, friendlyError } from "../components/ui";
 
 const PAGE_SIZE = 25;
 const STATUS_TONE: Record<string, "amber" | "green" | "red" | "gray"> = { pending: "amber", accepted: "green", declined: "red" };
@@ -31,7 +31,7 @@ export function RequestsPage() {
       selection.clear();
       void queryClient.invalidateQueries();
     },
-    onError: (e) => toast(e.message, "error"),
+    onError: (e) => toast(friendlyError(e), "error"),
   });
 
   const cancel = useMutation({
@@ -40,7 +40,7 @@ export function RequestsPage() {
       toast("Request cancelled");
       void queryClient.invalidateQueries();
     },
-    onError: (e) => toast(e.message, "error"),
+    onError: (e) => toast(friendlyError(e), "error"),
   });
 
   return (

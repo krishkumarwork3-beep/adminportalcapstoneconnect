@@ -5,7 +5,7 @@ import { Search } from "lucide-react";
 import { api, type BlockedNumber } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { formatDateTime } from "../lib/format";
-import { Button, Card, ConfirmDialog, EmptyState, ErrorNote, Field, Input, PageCheckbox, PageHeader, SelectionBar, Spinner, Table, Textarea, useDebounced, useSelection, useToast } from "../components/ui";
+import { Button, Card, ConfirmDialog, EmptyState, ErrorNote, Field, Input, PageCheckbox, PageHeader, SelectionBar, Spinner, Table, Textarea, useDebounced, useSelection, useToast, friendlyError } from "../components/ui";
 
 export function BlockedNumbersPage() {
   const { canEdit } = useAuth();
@@ -35,7 +35,7 @@ export function BlockedNumbersPage() {
       setReason("");
       void queryClient.invalidateQueries();
     },
-    onError: (e) => toast(e.message, "error"),
+    onError: (e) => toast(friendlyError(e), "error"),
   });
   const remove = useMutation({
     mutationFn: (phone: string) => api(`/banned-phones/${phone}`, { method: "DELETE" }),
@@ -44,7 +44,7 @@ export function BlockedNumbersPage() {
       setRemoving(null);
       void queryClient.invalidateQueries();
     },
-    onError: (e) => toast(e.message, "error"),
+    onError: (e) => toast(friendlyError(e), "error"),
   });
 
   const removeSelected = useMutation({
@@ -55,7 +55,7 @@ export function BlockedNumbersPage() {
       selection.clear();
       void queryClient.invalidateQueries();
     },
-    onError: (e) => toast(e.message, "error"),
+    onError: (e) => toast(friendlyError(e), "error"),
   });
   const rows = list.data ?? [];
 

@@ -6,7 +6,7 @@ import { api, type ConversationRow, type MessageRow, type Page } from "../lib/ap
 import { useAuth } from "../lib/auth";
 import { formatDateTime, timeAgo } from "../lib/format";
 import { safeHref } from "../lib/security/safe-url";
-import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorNote, Input, PageHeader, Pagination, SelectionBar, Spinner, cn, useDebounced, useSelection, useToast } from "../components/ui";
+import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorNote, Input, PageHeader, Pagination, SelectionBar, Spinner, cn, useDebounced, useSelection, useToast, friendlyError } from "../components/ui";
 
 const PAGE_SIZE = 20;
 
@@ -36,7 +36,7 @@ export function ChatsPage() {
       setDeleting(null);
       void queryClient.invalidateQueries();
     },
-    onError: (e) => toast(e.message, "error"),
+    onError: (e) => toast(friendlyError(e), "error"),
   });
 
   const removeSelected = useMutation({
@@ -47,7 +47,7 @@ export function ChatsPage() {
       selection.clear();
       void queryClient.invalidateQueries();
     },
-    onError: (e) => toast(e.message, "error"),
+    onError: (e) => toast(friendlyError(e), "error"),
   });
   const shown = messages.data ?? [];
 
