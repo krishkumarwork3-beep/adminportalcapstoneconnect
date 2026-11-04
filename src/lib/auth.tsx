@@ -9,6 +9,8 @@ interface AuthState {
   canEdit: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  /** Ends every session of this admin account, on every device. */
+  signOutEverywhere: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthState | null>(null);
@@ -43,6 +45,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     },
     async signOut() {
       await api("/auth/logout", { method: "POST" }).catch(() => {});
+      forgetData();
+      queryClient.setQueryData(["me"], null);
+    },
+    async signOutEverywhere() {
+      await api("/auth/logout-all", { method: "POST" });
       forgetData();
       queryClient.setQueryData(["me"], null);
     },

@@ -20,7 +20,7 @@ const NAV = [
 ];
 
 export function Layout() {
-  const { admin, signOut } = useAuth();
+  const { admin, signOut, signOutEverywhere } = useAuth();
   const [open, setOpen] = useState(false);
 
   const nav = (
@@ -68,6 +68,9 @@ export function Layout() {
               <LogOut className="h-3.5 w-3.5" /> Sign out
             </button>
           </div>
+          <button onClick={() => void signOutEverywhere()} className="mt-2 text-[11px] text-slate-400 underline-offset-2 hover:text-white hover:underline">
+            Sign out on all devices
+          </button>
         </div>
       </aside>
       {open ? <div className="fixed inset-0 z-30 bg-slate-900/40 lg:hidden" onClick={() => setOpen(false)} /> : null}
