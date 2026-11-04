@@ -1,11 +1,11 @@
 import { useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Search, Trash2, UserMinus } from "lucide-react";
+import { ArrowLeft, Crown, Pencil, Search, Trash2, UserMinus } from "lucide-react";
 import { api, type GroupDetail, type GroupRow, type Page } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { formatDate, formatDateTime } from "../lib/format";
-import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorNote, Input, PageCheckbox, PageHeader, Pagination, Select, SelectionBar, Spinner, Table, useDebounced, useSelection, useToast } from "../components/ui";
+import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorNote, Field, Input, Modal, PageCheckbox, Textarea, PageHeader, Pagination, Select, SelectionBar, Spinner, Table, useDebounced, useSelection, useToast } from "../components/ui";
 
 const PAGE_SIZE = 25;
 
@@ -114,6 +114,33 @@ export function GroupPage() {
   const group = useQuery({ queryKey: ["group", id], queryFn: () => api<GroupDetail>(`/groups/${id}`) });
   const [removing, setRemoving] = useState<{ user_id: string; name: string; role: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [editing, setEditing] = useState<{ name: string; description: string; domain: string; requirements: string } | null>(null);
+  const [newLead, setNewLead] = useState<{ user_id: string; name: string } | null>(null);
+
+  const saveEdit = useMutation({
+    mutationFn: () =>
+      api<GroupDetail>(`/groups/${id}`, {
+        method: "PATCH",
+        body: editing && { ...editing, requirements: editing.requirements.split(",").map((r) => r.trim()).filter(Boolean) },
+      }),
+    onSuccess: (detail) => {
+      toast("Group saved");
+      setEditing(null);
+      queryClient.setQueryData(["group", id], detail);
+      void queryClient.invalidateQueries({ queryKey: ["groups"] });
+    },
+    onError: (e) => toast(e.message, "error"),
+  });
+  const makeLead = useMutation({
+    mutationFn: (userId: string) => api<GroupDetail>(`/groups/${id}/lead`, { method: "POST", body: { user_id: userId } }),
+    onSuccess: (detail) => {
+      toast(`${newLead?.name} is now the Group Lead`);
+      setNewLead(null);
+      queryClient.setQueryData(["group", id], detail);
+      void queryClient.invalidateQueries({ queryKey: ["groups"] });
+    },
+    onError: (e) => toast(e.message, "error"),
+  });
 
   const remove = useMutation({
     mutationFn: (userId: string) => api(`/groups/${id}/members/${userId}`, { method: "DELETE" }),
@@ -148,9 +175,14 @@ export function GroupPage() {
         description={`${g.domain} · ${g.member_count} of ${g.max_members} seats · ${g.pending_requests} pending requests · created ${formatDate(g.created_at)}`}
         actions={
           canEdit ? (
-            <Button variant="danger" onClick={() => setDeleting(true)}>
-              <Trash2 className="h-4 w-4" /> Delete group
-            </Button>
+            <>
+              <Button onClick={() => setEditing({ name: g.name, description: g.description, domain: g.domain, requirements: g.requirements.join(", ") })}>
+                <Pencil className="h-4 w-4" /> Edit group
+              </Button>
+              <Button variant="danger" onClick={() => setDeleting(true)}>
+                <Trash2 className="h-4 w-4" /> Delete group
+              </Button>
+            </>
           ) : null
         }
       />
@@ -164,7 +196,12 @@ export function GroupPage() {
                 <td>{m.role === "admin" ? <Badge tone="orange">Group Lead</Badge> : <Badge>Member</Badge>}</td>
                 <td className="whitespace-nowrap text-slate-500">{formatDateTime(m.joined_at)}</td>
                 {canEdit ? (
-                  <td className="text-right">
+                  <td className="text-right whitespace-nowrap">
+                    {m.role !== "admin" ? (
+                      <Button size="sm" variant="ghost" onClick={() => setNewLead(m)}>
+                        <Crown className="h-4 w-4" /> Make lead
+                      </Button>
+                    ) : null}
                     <Button size="sm" variant="ghost" onClick={() => setRemoving(m)}>
                       <UserMinus className="h-4 w-4" /> Remove
                     </Button>
@@ -196,6 +233,30 @@ export function GroupPage() {
         onConfirm={() => removing && remove.mutate(removing.user_id)}
         onClose={() => setRemoving(null)}
       />
+      <ConfirmDialog
+        open={newLead !== null}
+        title={`Make ${newLead?.name} the Group Lead?`}
+        message={`They can then accept requests, invite and manage ${g.name}. The current lead stays in the group as a member.`}
+        confirmLabel="Make lead"
+        busy={makeLead.isPending}
+        onConfirm={() => newLead && makeLead.mutate(newLead.user_id)}
+        onClose={() => setNewLead(null)}
+      />
+      <Modal open={editing !== null} title={`Edit ${g.name}`} onClose={() => setEditing(null)} wide>
+        {editing ? (
+          <form id="edit-group" className="grid gap-4" onSubmit={(e) => { e.preventDefault(); saveEdit.mutate(); }}>
+            <Field label="Name">{(fid) => <Input id={fid} required maxLength={160} value={editing.name} onChange={(e) => setEditing({ ...editing, name: e.target.value })} />}</Field>
+            <Field label="Domain">{(fid) => <Input id={fid} required maxLength={160} value={editing.domain} onChange={(e) => setEditing({ ...editing, domain: e.target.value })} />}</Field>
+            <Field label="Description">{(fid) => <Textarea id={fid} rows={4} maxLength={2000} value={editing.description} onChange={(e) => setEditing({ ...editing, description: e.target.value })} />}</Field>
+            <Field label="Looking for (skills)" hint="Comma separated">{(fid) => <Input id={fid} value={editing.requirements} onChange={(e) => setEditing({ ...editing, requirements: e.target.value })} />}</Field>
+            <p className="text-xs text-slate-500">The group size ({g.max_members} seats) can't be changed.</p>
+          </form>
+        ) : null}
+        <div className="flex justify-end gap-2">
+          <Button onClick={() => setEditing(null)}>Cancel</Button>
+          <Button type="submit" form="edit-group" variant="primary" busy={saveEdit.isPending}>Save</Button>
+        </div>
+      </Modal>
       <ConfirmDialog
         open={deleting}
         title={`Delete ${g.name}?`}

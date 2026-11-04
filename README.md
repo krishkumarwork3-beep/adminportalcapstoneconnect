@@ -58,12 +58,14 @@ two minutes. Changing an admin's password, or deactivating them, signs them out 
 | --- | --- |
 | Dashboard | Students, activity, groups, requests, messages, suspensions and blocked numbers at a glance; sign-ups per day for 30 days; newest students; latest admin actions |
 | Students | Search by name, college, phone (any format) or id; filter by status and college; sort; page through. Add a student. Select several to suspend, lift or delete. Export the list (with the current filters) as CSV |
-| Student | Edit their details, including their phone number (their login). Set a new password (signs them out everywhere). Suspend, optionally also blocking their number. Lift a suspension. Delete (a Group Lead's group passes to the longest-serving member). Their group and activity |
-| Groups | Every team with its lead and seats; members of a group; remove a member; delete a group (members become free, its chat and pending requests go with it) |
+| Student | Edit their details, including their phone number (their login). Set a new password (signs them out everywhere). Suspend, optionally also blocking their number. Lift a suspension. Delete (a Group Lead's group passes to the longest-serving member). Remove their photo or résumé (the file is deleted from the server). Their group and activity |
+| Groups | Every team with its lead and seats; members of a group; edit a group's name, domain, description and skills; make another member the Group Lead; remove a member; delete a group (members become free, its chat and pending requests go with it) |
 | Requests | Join requests and invitations by status and type; cancel a pending one |
+| Recommendations | Read-only: which member recommended which student, for which group, and what happened to it |
 | Chats | Read any group or direct conversation; delete a message (the conversation preview updates) |
 | Blocked numbers | Block one or many numbers at once, in any format, with a reason; see which have accounts; unblock |
 | Audit log | Every change made in the portal: who, what, which record, when, with details; search and filter |
+| Select all | Students, Groups, Blocked numbers, Requests and Chats have **Select all N** (every match of the current search and filters, across pages) and act on the selection: delete, suspend, unblock, cancel |
 | Admins | Add admins, change their access, deactivate or remove them; change your own password |
 | API & docs | Backend health; Swagger UI (embedded), ReDoc and the OpenAPI file for testing endpoints |
 

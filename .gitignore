@@ -4,3 +4,9 @@ dist
 .env.local
 *.log
 *.tsbuildinfo
+
+# Secrets, local databases and uploads
+.env.*
+!.env.example
+.pgdata/
+uploads/

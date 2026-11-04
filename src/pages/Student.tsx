@@ -33,6 +33,7 @@ export function StudentPage() {
   const [password, setPassword] = useState("");
   const [reason, setReason] = useState("");
   const [blockNumber, setBlockNumber] = useState(false);
+  const [removingFile, setRemovingFile] = useState<"avatar" | "resume" | null>(null);
 
   useEffect(() => {
     if (student.data) setForm(toForm(student.data));
@@ -101,6 +102,17 @@ export function StudentPage() {
       toast("Student deleted");
       void queryClient.invalidateQueries();
       navigate("/students");
+    },
+    onError: fail,
+  });
+
+  const removeFile = useMutation({
+    mutationFn: (kind: "avatar" | "resume") => api<StudentDetail>(`/users/${id}/${kind}`, { method: "DELETE" }),
+    onSuccess: (detail, kind) => {
+      toast(kind === "avatar" ? "Photo removed" : "Résumé removed");
+      setRemovingFile(null);
+      queryClient.setQueryData(["student", id], detail);
+      void queryClient.invalidateQueries({ queryKey: ["audit"] });
     },
     onError: fail,
   });
@@ -223,14 +235,36 @@ export function StudentPage() {
           </Card>
           {s.resume_url || s.avatar_url ? (
             <Card title="Files">
-              <ul className="space-y-1 p-4 text-sm">
-                {s.avatar_url ? <li><a className="text-orange-700 hover:underline" href={s.avatar_url} target="_blank" rel="noreferrer">Profile photo</a></li> : null}
-                {s.resume_url ? <li><a className="text-orange-700 hover:underline" href={s.resume_url} target="_blank" rel="noreferrer">Résumé</a></li> : null}
+              <ul className="divide-y divide-slate-100 text-sm">
+                {s.avatar_url ? (
+                  <li className="flex items-center gap-3 px-4 py-3">
+                    <img src={s.avatar_url} alt="" className="h-10 w-10 rounded-full border border-slate-200 object-cover" />
+                    <a className="flex-1 text-orange-700 hover:underline" href={s.avatar_url} target="_blank" rel="noreferrer">Profile photo</a>
+                    {canEdit ? <Button size="sm" variant="ghost" onClick={() => setRemovingFile("avatar")}>Remove</Button> : null}
+                  </li>
+                ) : null}
+                {s.resume_url ? (
+                  <li className="flex items-center gap-3 px-4 py-3">
+                    <a className="flex-1 text-orange-700 hover:underline" href={s.resume_url} target="_blank" rel="noreferrer">Résumé (PDF)</a>
+                    {canEdit ? <Button size="sm" variant="ghost" onClick={() => setRemovingFile("resume")}>Remove</Button> : null}
+                  </li>
+                ) : null}
               </ul>
             </Card>
           ) : null}
         </div>
       </div>
+
+      <ConfirmDialog
+        open={removingFile !== null}
+        title={removingFile === "avatar" ? `Remove ${s.name}'s photo?` : `Remove ${s.name}'s résumé?`}
+        message="The file is deleted from the server. They can upload a new one from their profile."
+        confirmLabel="Remove"
+        danger
+        busy={removeFile.isPending}
+        onConfirm={() => removingFile && removeFile.mutate(removingFile)}
+        onClose={() => setRemovingFile(null)}
+      />
 
       <Modal
         open={dialog === "password"}

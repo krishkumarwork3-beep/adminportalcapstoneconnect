@@ -122,6 +122,20 @@ export interface GroupDetail extends GroupRow {
   pending_requests: number;
 }
 
+export interface RecommendationRow {
+  id: string;
+  group_id: string | null;
+  group_name: string | null;
+  recommender_id: string;
+  recommender_name: string;
+  student_id: string;
+  student_name: string;
+  note: string | null;
+  status: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface RequestRow {
   id: string;
   type: "join_request" | "invitation";

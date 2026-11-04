@@ -13,6 +13,7 @@ import { StudentsPage } from "./pages/Students";
 import { StudentPage } from "./pages/Student";
 import { GroupsPage, GroupPage } from "./pages/Groups";
 import { RequestsPage } from "./pages/Requests";
+import { RecommendationsPage } from "./pages/Recommendations";
 import { ChatsPage } from "./pages/Chats";
 import { BlockedNumbersPage } from "./pages/BlockedNumbers";
 import { AuditPage } from "./pages/Audit";
@@ -59,6 +60,7 @@ createRoot(document.getElementById("root")!).render(
                 <Route path="groups" element={<GroupsPage />} />
                 <Route path="groups/:id" element={<GroupPage />} />
                 <Route path="requests" element={<RequestsPage />} />
+                <Route path="recommendations" element={<RecommendationsPage />} />
                 <Route path="chats" element={<ChatsPage />} />
                 <Route path="blocked-numbers" element={<BlockedNumbersPage />} />
                 <Route path="audit" element={<AuditPage />} />
