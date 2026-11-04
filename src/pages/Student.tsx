@@ -5,6 +5,7 @@ import { ArrowLeft, KeyRound, ShieldOff, ShieldX, Trash2 } from "lucide-react";
 import { api, type StudentDetail } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { formatDateTime, timeAgo } from "../lib/format";
+import { safeHref } from "../lib/security/safe-url";
 import { Badge, Button, Card, ConfirmDialog, ErrorNote, Field, Input, Modal, Spinner, Textarea, useToast } from "../components/ui";
 import { StatusBadges } from "./Students";
 
@@ -239,13 +240,13 @@ export function StudentPage() {
                 {s.avatar_url ? (
                   <li className="flex items-center gap-3 px-4 py-3">
                     <img src={s.avatar_url} alt="" className="h-10 w-10 rounded-full border border-slate-200 object-cover" />
-                    <a className="flex-1 text-orange-700 hover:underline" href={s.avatar_url} target="_blank" rel="noreferrer">Profile photo</a>
+                    <a className="flex-1 text-orange-700 hover:underline" href={safeHref(s.avatar_url)} target="_blank" rel="noopener noreferrer">Profile photo</a>
                     {canEdit ? <Button size="sm" variant="ghost" onClick={() => setRemovingFile("avatar")}>Remove</Button> : null}
                   </li>
                 ) : null}
                 {s.resume_url ? (
                   <li className="flex items-center gap-3 px-4 py-3">
-                    <a className="flex-1 text-orange-700 hover:underline" href={s.resume_url} target="_blank" rel="noreferrer">Résumé (PDF)</a>
+                    <a className="flex-1 text-orange-700 hover:underline" href={safeHref(s.resume_url)} target="_blank" rel="noopener noreferrer">Résumé (PDF)</a>
                     {canEdit ? <Button size="sm" variant="ghost" onClick={() => setRemovingFile("resume")}>Remove</Button> : null}
                   </li>
                 ) : null}

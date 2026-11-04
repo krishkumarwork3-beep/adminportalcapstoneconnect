@@ -2,6 +2,7 @@ import { useQuery } from "@tanstack/react-query";
 import { ExternalLink } from "lucide-react";
 import { API_BASE_URL, API_ORIGIN } from "../lib/api";
 import { Badge, Button, Card, PageHeader } from "../components/ui";
+import { parseJson } from "../lib/security/json";
 
 /** Health of the API, timed: GET /api/health. */
 function useHealth() {
@@ -10,7 +11,7 @@ function useHealth() {
     queryFn: async () => {
       const started = performance.now();
       const response = await fetch(`${API_BASE_URL}/health`);
-      const body = await response.json().catch(() => ({}));
+      const body = await response.text().then((t) => (t ? parseJson<{ status?: string }>(t) : {})).catch(() => ({} as { status?: string }));
       return { ok: response.ok && body.status === "ok", ms: Math.round(performance.now() - started) };
     },
     refetchInterval: 15_000,
@@ -47,7 +48,7 @@ export function ApiPage() {
                   <span className="text-sm font-medium">{l.label}</span>
                   <span className="block text-xs text-slate-500">{l.note}</span>
                 </span>
-                <a href={l.href} target="_blank" rel="noreferrer">
+                <a href={l.href} target="_blank" rel="noopener noreferrer">
                   <Button size="sm">
                     Open <ExternalLink className="h-3.5 w-3.5" />
                   </Button>
@@ -72,7 +73,7 @@ export function ApiPage() {
         </ul>
       </Card>
 
-      <Card title="Swagger UI" className="mt-4" actions={<a className="text-xs text-orange-700 hover:underline" href={`${API_ORIGIN}/docs`} target="_blank" rel="noreferrer">Open in a new tab</a>}>
+      <Card title="Swagger UI" className="mt-4" actions={<a className="text-xs text-orange-700 hover:underline" href={`${API_ORIGIN}/docs`} target="_blank" rel="noopener noreferrer">Open in a new tab</a>}>
         <iframe title="API documentation" src={`${API_ORIGIN}/docs`} className="h-[75vh] w-full rounded-b-lg" />
       </Card>
     </>

@@ -5,6 +5,7 @@ import { Paperclip, Search, Trash2 } from "lucide-react";
 import { api, type ConversationRow, type MessageRow, type Page } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { formatDateTime, timeAgo } from "../lib/format";
+import { safeHref } from "../lib/security/safe-url";
 import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorNote, Input, PageHeader, Pagination, SelectionBar, Spinner, cn, useDebounced, useSelection, useToast } from "../components/ui";
 
 const PAGE_SIZE = 20;
@@ -118,7 +119,7 @@ export function ChatsPage() {
                     </p>
                     {m.text ? <p className="mt-0.5 text-sm whitespace-pre-wrap break-words text-slate-800">{m.text}</p> : null}
                     {m.attachment_name ? (
-                      <a href={m.attachment_url ?? undefined} target="_blank" rel="noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs text-orange-700 hover:underline">
+                      <a href={safeHref(m.attachment_url)} target="_blank" rel="noopener noreferrer" className="mt-1 inline-flex items-center gap-1 text-xs text-orange-700 hover:underline">
                         <Paperclip className="h-3.5 w-3.5" /> {m.attachment_name}
                       </a>
                     ) : null}

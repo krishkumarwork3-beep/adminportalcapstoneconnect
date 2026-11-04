@@ -1,3 +1,4 @@
+import { parseJson } from "./security/json";
 // Client for the CapstoneConnect admin API (/api/admin). The admin session is an httpOnly cookie,
 // so every request is sent with credentials and the portal never sees the token.
 
@@ -34,7 +35,7 @@ export async function api<T>(path: string, options: { method?: string; body?: un
     throw new ApiError(`Can't reach the API at ${API_ORIGIN}. Is the backend running?`, 0);
   }
   if (response.status === 204) return undefined as T;
-  const data = await response.json().catch(() => ({}));
+  const data = await response.text().then((t) => (t ? parseJson<Record<string, string>>(t) : {})).catch(() => ({} as Record<string, string>));
   if (!response.ok) throw new ApiError(data.message || `Request failed (${response.status})`, response.status);
   return data as T;
 }
