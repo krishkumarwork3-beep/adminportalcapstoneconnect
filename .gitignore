@@ -10,3 +10,6 @@ dist
 !.env.example
 .pgdata/
 uploads/
+
+# HTTPS end-to-end build
+dist-https/

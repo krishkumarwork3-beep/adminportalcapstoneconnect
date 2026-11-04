@@ -64,6 +64,11 @@ export default defineConfig(({ mode }) => {
   return {
     plugins: [react(), tailwindcss(), cspMeta(api)],
     server: { port: 3100, strictPort: true, headers: { "X-Frame-Options": "DENY", "X-Content-Type-Options": "nosniff" } },
-    preview: { port: 3100, headers: securityHeaders(api) },
+    // The built index.html carries the full policy for the API it was built for; the preview
+    // server (which may run with other variables) only adds what a <meta> tag can't say.
+    preview: {
+      port: 3100,
+      headers: { ...securityHeaders(api), "Content-Security-Policy": "frame-ancestors 'none'" },
+    },
   };
 });
