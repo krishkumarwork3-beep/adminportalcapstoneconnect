@@ -61,6 +61,8 @@ two minutes. Changing an admin's password, or deactivating them, signs them out 
 | Student | Edit their details, including their phone number (their login). Set a new password (signs them out everywhere). Suspend, optionally also blocking their number. Lift a suspension. Delete (a Group Lead's group passes to the longest-serving member). Remove their photo or résumé (the file is deleted from the server). Their group and activity |
 | Groups | Every team with its lead and seats; members of a group; edit a group's name, domain, description and skills; make another member the Group Lead; remove a member; delete a group (members become free, its chat and pending requests go with it) |
 | Requests | Join requests and invitations by status and type; cancel a pending one |
+| Reports | What students reported (a student, a group or a message), by whom and why; suspend the student, delete the message, mark reviewed, dismiss or reopen. The dashboard counts open reports |
+| Announcements | The banner on the student site: text, optional link, info or warning, when it shows; create, edit, delete |
 | Recommendations | Read-only: which member recommended which student, for which group, and what happened to it |
 | Chats | Read any group or direct conversation; delete a message (the conversation preview updates) |
 | Blocked numbers | Block one or many numbers at once, in any format, with a reason; see which have accounts; unblock |
@@ -85,9 +87,13 @@ endpoints, run `POST /api/auth/login` with a student's phone and password first 
 
 ## Production
 
-- Serve the portal on the same site as the API (e.g. `admin.example.com` with `api.example.com`) and
-  add its origin to the backend's `CORS_ORIGINS`; use HTTPS and `COOKIE_SECURE=true`.
-- `npm run build` produces a static site in `dist/`; any static host works. Send every path to
-  `index.html` (it is a single-page app).
-- Keep the portal private (an IP allow-list or SSO in front of it is a good idea); it is marked
-  `noindex`.
+- `VITE_API_BASE_URL=https://api.example.com/api npm run build` produces a static site in `dist/`;
+  any static host works. Send every path to `index.html` (a single-page app; `vercel.json` does it
+  on Vercel).
+- The build writes a Content Security Policy for that API into `index.html`, and `dist/_headers`
+  (Netlify, Cloudflare Pages) / `vercel.json` add frame protection.
+- Serve it on the same site as the API (e.g. `admin.example.com` with `api.example.com`) and add
+  its origin to the API's `CORS_ORIGINS`; use HTTPS and `COOKIE_SECURE=true`.
+- Keep the portal private (an IP allow-list or the host's password protection); it is `noindex`.
+- `npm run lint` (ESLint) and `npm run build` run in CI (`.github/workflows/ci.yml`).
+- The whole stack: `../capstoneconnectbackend/DEPLOY.md`.
