@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { NavLink, Outlet } from "react-router-dom";
-import { Ban, BookOpen, FileClock, Inbox, LayoutDashboard, LogOut, Menu, MessagesSquare, ShieldCheck, ThumbsUp, Users, UsersRound, X } from "lucide-react";
+import { Ban, BookOpen, FileClock, Flag, Inbox, LayoutDashboard, LogOut, Megaphone, Menu, MessagesSquare, ShieldCheck, ThumbsUp, Users, UsersRound, X } from "lucide-react";
 import { useAuth } from "../lib/auth";
 import { Badge, Button, cn } from "./ui";
 
@@ -11,7 +11,9 @@ const NAV = [
   { to: "/requests", label: "Requests", icon: Inbox },
   { to: "/recommendations", label: "Recommendations", icon: ThumbsUp },
   { to: "/chats", label: "Chats", icon: MessagesSquare },
+  { to: "/reports", label: "Reports", icon: Flag },
   { to: "/blocked-numbers", label: "Blocked numbers", icon: Ban },
+  { to: "/announcements", label: "Announcements", icon: Megaphone },
   { to: "/audit", label: "Audit log", icon: FileClock },
   { to: "/admins", label: "Admins", icon: ShieldCheck },
   { to: "/api", label: "API & docs", icon: BookOpen },

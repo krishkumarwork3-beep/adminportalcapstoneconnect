@@ -122,6 +122,41 @@ export interface GroupDetail extends GroupRow {
   pending_requests: number;
 }
 
+export interface ReportRow {
+  id: string;
+  reporter_id: string;
+  reporter_name: string;
+  target_type: "user" | "group" | "message";
+  target_id: string;
+  target_user_id: string | null;
+  target_user_name: string | null;
+  target_user_banned: boolean;
+  target_exists: boolean;
+  conversation_id: string | null;
+  reason: string;
+  reason_label: string;
+  details: string;
+  snapshot: string;
+  status: "open" | "reviewed" | "dismissed" | "actioned";
+  handled_by: string | null;
+  handled_at: string | null;
+  created_at: string;
+}
+
+export interface AnnouncementRow {
+  id: string;
+  text: string;
+  link_url: string | null;
+  link_label: string | null;
+  level: "info" | "warning";
+  starts_at: string;
+  ends_at: string | null;
+  created_by: string;
+  created_at: string;
+  updated_at: string;
+  active: boolean;
+}
+
 export interface RecommendationRow {
   id: string;
   group_id: string | null;
@@ -188,6 +223,7 @@ export interface Stats {
   requests: { pending: number; accepted: number; declined: number };
   chat: { conversations: number; messages: number; messages_today: number };
   blocked_numbers: number;
+  reports: { open: number };
   signups: { date: string; count: number }[];
   recent_users: { id: string; name: string; college: string; created_at: string }[];
   recent_actions: AuditRow[];

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Link } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Paperclip, Search, Trash2 } from "lucide-react";
 import { api, type ConversationRow, type MessageRow, type Page } from "../lib/api";
 import { useAuth } from "../lib/auth";
@@ -16,7 +16,9 @@ export function ChatsPage() {
   const [search, setSearch] = useState("");
   const q = useDebounced(search);
   const [page, setPage] = useState(1);
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [params] = useSearchParams();
+  // ?c=conv_… opens that conversation (links from the Reports page).
+  const [openId, setOpenId] = useState<string | null>(params.get("c"));
   const [deleting, setDeleting] = useState<MessageRow | null>(null);
   const selection = useSelection();
   const [deletingSelected, setDeletingSelected] = useState(false);

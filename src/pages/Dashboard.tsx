@@ -58,6 +58,7 @@ export function DashboardPage() {
         <Stat label="Conversations" value={s.chat.conversations} />
         <Stat label="Suspended students" value={s.users.banned} to="/students?status=banned" />
         <Stat label="Blocked numbers" value={s.blocked_numbers} to="/blocked-numbers" />
+        <Stat label="Open reports" value={s.reports.open} note={s.reports.open ? "waiting for review" : "all clear"} to="/reports" />
       </div>
 
       <div className="mt-4 grid gap-4 lg:grid-cols-3">
