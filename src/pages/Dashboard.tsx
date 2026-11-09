@@ -50,7 +50,7 @@ export function DashboardPage() {
     <>
       <PageHeader title="Dashboard" description="The site at a glance. Refreshes every 30 seconds." />
       <div className="grid grid-cols-2 gap-3 md:grid-cols-4">
-        <Stat label="Students" value={s.users.total} note={`${s.users.new_this_week} new this week`} to="/students" />
+        <Stat label="Total signups" value={s.users.total} note={`${s.users.new_this_week} new this week`} to="/students" />
         <Stat label="Active today" value={s.users.active_today} note={`${s.users.looking} still looking for a team`} />
         <Stat label="Groups" value={s.groups.total} note={`${s.groups.open} open, ${s.groups.full} full`} to="/groups" />
         <Stat label="Pending requests" value={s.requests.pending} note={`${s.requests.accepted} accepted so far`} to="/requests" />

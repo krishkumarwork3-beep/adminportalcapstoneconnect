@@ -179,7 +179,7 @@ export function StudentPage() {
               <Field label="College">{(fid) => <Input id={fid} required value={form.college} onChange={set("college")} />}</Field>
               <Field label="Department">{(fid) => <Input id={fid} value={form.department} onChange={set("department")} />}</Field>
               <Field label="Graduation year">{(fid) => <Input id={fid} type="number" min={2000} max={2100} required value={form.passing_year} onChange={set("passing_year")} />}</Field>
-              <Field label="GitHub" hint={s.github_url ? (s.github_verified ? `Verified · ${s.github_contribution_count ?? 0} contributions` : "Not verified yet") : undefined}>
+              <Field label="GitHub" hint={s.github_url ? (s.github_verified ? `Verified · ${s.github_contribution_count ?? 0} contributions in the last year` : "Not verified yet") : undefined}>
                 {(fid) => <Input id={fid} value={form.github_url} onChange={set("github_url")} placeholder="username or profile URL" />}
               </Field>
               <div className="sm:col-span-2">
