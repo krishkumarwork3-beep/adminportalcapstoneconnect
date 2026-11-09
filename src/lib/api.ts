@@ -1,5 +1,5 @@
 import { parseJson } from "./security/json";
-import { createRenewal, sendWithRenewal } from "./renewal";
+import { createRenewal, rememberSignedIn, sendWithRenewal } from "./renewal";
 // Client for the CapstoneConnect admin API (/api/admin). The admin session is an httpOnly cookie,
 // so every request is sent with credentials and the portal never sees the token.
 
@@ -32,7 +32,10 @@ export const SIGNED_OUT_EVENT = "capconnect-admin:signed-out";
 const NO_RETRY = /^\/auth\/(login|logout|logout-all|refresh)\b/;
 export const refreshSession = createRenewal(
   () => fetch(buildUrl("/auth/refresh"), { method: "POST", credentials: "include" }).then((answer) => answer.ok),
-  () => window.dispatchEvent(new Event(SIGNED_OUT_EVENT)),
+  () => {
+    rememberSignedIn(false);
+    window.dispatchEvent(new Event(SIGNED_OUT_EVENT));
+  },
 );
 
 export async function api<T>(path: string, options: { method?: string; body?: unknown; query?: Query } = {}): Promise<T> {
@@ -46,6 +49,8 @@ export async function api<T>(path: string, options: { method?: string; body?: un
     });
   try {
     response = await sendWithRenewal(send, refreshSession, NO_RETRY.test(path));
+    if (/^\/auth\/(logout|logout-all)\b/.test(path)) rememberSignedIn(false);
+    else if (response.ok && /^\/auth\/(login|me)\b/.test(path)) rememberSignedIn(true);
   } catch {
     throw new ApiError(`Can't reach the API at ${API_ORIGIN}. Is the backend running?`, 0);
   }
