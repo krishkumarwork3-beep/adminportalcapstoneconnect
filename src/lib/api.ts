@@ -1,4 +1,5 @@
 import { parseJson } from "./security/json";
+import { createRenewal, sendWithRenewal } from "./renewal";
 // Client for the CapstoneConnect admin API (/api/admin). The admin session is an httpOnly cookie,
 // so every request is sent with credentials and the portal never sees the token.
 
@@ -22,15 +23,29 @@ export function buildUrl(path: string, query?: Query): string {
   return url.toString();
 }
 
+/**
+ * The admin session is a 15-minute access cookie plus a rotating refresh cookie (both httpOnly).
+ * A 401 renews once (one request for the whole portal, however many failed together) and retries
+ * once; if the renewal fails, SIGNED_OUT_EVENT tells the auth provider, which shows the log-in.
+ */
+export const SIGNED_OUT_EVENT = "capconnect-admin:signed-out";
+const NO_RETRY = /^\/auth\/(login|logout|logout-all|refresh)\b/;
+export const refreshSession = createRenewal(
+  () => fetch(buildUrl("/auth/refresh"), { method: "POST", credentials: "include" }).then((answer) => answer.ok),
+  () => window.dispatchEvent(new Event(SIGNED_OUT_EVENT)),
+);
+
 export async function api<T>(path: string, options: { method?: string; body?: unknown; query?: Query } = {}): Promise<T> {
   let response: Response;
-  try {
-    response = await fetch(buildUrl(path, options.query), {
+  const send = () =>
+    fetch(buildUrl(path, options.query), {
       method: options.method ?? "GET",
       credentials: "include",
       headers: options.body === undefined ? undefined : { "Content-Type": "application/json" },
       body: options.body === undefined ? undefined : JSON.stringify(options.body),
     });
+  try {
+    response = await sendWithRenewal(send, refreshSession, NO_RETRY.test(path));
   } catch {
     throw new ApiError(`Can't reach the API at ${API_ORIGIN}. Is the backend running?`, 0);
   }

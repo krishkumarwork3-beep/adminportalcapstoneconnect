@@ -1,6 +1,6 @@
-import { createContext, useContext, type ReactNode } from "react";
+import { createContext, useContext, useEffect, type ReactNode } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { api, ApiError, type Admin } from "./api";
+import { api, ApiError, SIGNED_OUT_EVENT, type Admin } from "./api";
 
 interface AuthState {
   admin: Admin | null;
@@ -31,6 +31,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
 
   const forgetData = () => queryClient.removeQueries({ predicate: (query) => query.queryKey[0] !== "me" });
+  // A renewal failed (the session ended elsewhere, was revoked or expired): show the log-in.
+  useEffect(() => {
+    const signedOut = () => {
+      queryClient.setQueryData(["me"], null);
+      forgetData();
+    };
+    window.addEventListener(SIGNED_OUT_EVENT, signedOut);
+    return () => window.removeEventListener(SIGNED_OUT_EVENT, signedOut);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [queryClient]);
   const admin = me.data ?? null;
   const value: AuthState = {
     admin,
