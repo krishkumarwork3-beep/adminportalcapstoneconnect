@@ -28,7 +28,9 @@ const PATTERNS = [
   ["Slack token", /\bxox[abposr]-[A-Za-z0-9-]{10,}\b/],
   ["signed JWT", /\beyJ[A-Za-z0-9_-]{10,}\.eyJ[A-Za-z0-9_-]{10,}\.[A-Za-z0-9_-]{20,}\b/],
   ["database URL with a password", /\b(postgres(ql)?|mysql|mongodb(\+srv)?|redis):\/\/[^\s:@/"']+:[^\s@/"']+@/],
-  ["server-only setting name", /\b(SECRET_KEY|DATABASE_URL|ADMIN_PASSWORD|GITHUB_TOKEN|SMS_API_KEY|AWS_SECRET_ACCESS_KEY|S3_SECRET_KEY)\b/],
+  ["server-only setting name", /\b(SECRET_KEY|DATABASE_URL|ADMIN_PASSWORD|GITHUB_TOKEN|SMS_API_KEY|AWS_SECRET_ACCESS_KEY|S3_SECRET_KEY|FIELD_ENCRYPTION_KEYS|BLIND_INDEX_KEY)\b/],
+  // The demo mock API (seeded students, phones, chats) must never be in a real-backend build.
+  ["demo mock data", /\bcapstone_users\b|Aarav Sharma|\bpassword123\b/],
 ];
 
 /** Values of non-public variables in the local env files (and this process), at least 8 characters. */
