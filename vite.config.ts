@@ -2,10 +2,25 @@ import { defineConfig, loadEnv, type Plugin } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
 
+const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
+
 /** The API's origin, from the same variable the app uses (src/lib/api.ts). */
 function apiOrigin(mode: string): string {
   const env = loadEnv(mode, ".", "VITE_");
   return new URL(env.VITE_API_BASE_URL || "http://localhost:8000/api").origin;
+}
+
+/**
+ * A production build must talk to its API over https:// (the admin session cookies would cross
+ * the network in plain text otherwise). Plain http is allowed only for this machine (local and
+ * end-to-end runs); anything else fails the build.
+ */
+export function checkTransport(mode: string, apiBase: string | undefined): void {
+  if (mode !== "production" || !apiBase) return;
+  const url = new URL(apiBase);
+  if (url.protocol === "http:" && !LOCAL_HOSTS.has(url.hostname)) {
+    throw new Error(`VITE_API_BASE_URL must use https:// in a production build, got http://${url.host}`);
+  }
 }
 
 /**
@@ -26,6 +41,8 @@ function csp(api: string, forMeta: boolean): string {
     "object-src 'none'",
     "base-uri 'self'",
     "form-action 'self'",
+    // Served over HTTPS (the API is): any stray http:// request is upgraded.
+    ...(api.startsWith("https://") ? ["upgrade-insecure-requests"] : []),
     ...(forMeta ? [] : ["frame-ancestors 'none'"]),
   ].join("; ");
 }
@@ -37,6 +54,8 @@ function securityHeaders(api: string): Record<string, string> {
     "X-Frame-Options": "DENY",
     "Referrer-Policy": "strict-origin-when-cross-origin",
     "Permissions-Policy": "camera=(), microphone=(), geolocation=(), payment=()",
+    "X-Robots-Tag": "noindex, nofollow",
+    ...(api.startsWith("https://") ? { "Strict-Transport-Security": "max-age=31536000; includeSubDomains" } : {}),
   };
 }
 
@@ -60,6 +79,7 @@ function cspMeta(api: string): Plugin {
 }
 
 export default defineConfig(({ mode }) => {
+  checkTransport(mode, loadEnv(mode, ".", "VITE_").VITE_API_BASE_URL);
   const api = apiOrigin(mode);
   return {
     plugins: [react(), tailwindcss(), cspMeta(api)],
