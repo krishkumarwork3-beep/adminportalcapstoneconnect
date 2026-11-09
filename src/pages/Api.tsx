@@ -67,7 +67,7 @@ export function ApiPage() {
           </li>
           <li>
             <strong>Student endpoints</strong>: call <code className="rounded bg-slate-100 px-1">POST /api/auth/login</code> with a student's phone and
-            password (seeded students use <code className="rounded bg-slate-100 px-1">password123</code>); later calls run as that student.
+            password (on a development database, the seeded students' demo password is in the backend README); later calls run as that student.
           </li>
           <li>Changes made through the docs are real: they hit the same database as the site.</li>
         </ul>
