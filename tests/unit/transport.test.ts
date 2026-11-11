@@ -19,3 +19,10 @@ test("production refuses http:// off this machine; https and local http pass", (
   assert.equal(check("production", "http://localhost:8000/api").status, 0);
   assert.equal(check("development", "http://api.example.com/api").status, 0);
 });
+
+test("production fails closed without VITE_API_BASE_URL (no localhost fallback)", () => {
+  const none = check("production", "");
+  assert.notEqual(none.status, 0);
+  assert.match(none.stderr, /VITE_API_BASE_URL is required/);
+  assert.equal(check("development", "").status, 0);
+});

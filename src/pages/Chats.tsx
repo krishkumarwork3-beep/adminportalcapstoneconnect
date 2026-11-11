@@ -24,10 +24,12 @@ export function ChatsPage() {
   const selection = useSelection();
   const [deletingSelected, setDeletingSelected] = useState(false);
 
-  const query = { q, page, page_size: PAGE_SIZE };
-  const conversations = useQuery({ queryKey: ["conversations", query], queryFn: () => api<Page<ConversationRow>>("/conversations", { query }), placeholderData: keepPreviousData });
+  // Every chat read is audited; an optional reason is kept with it (the API also limits reads).
+  const [reason, setReason] = useState(params.get("reason") ?? (params.get("c") ? "Opened from a report" : ""));
+  const query = { q, page, page_size: PAGE_SIZE, reason: reason.trim() || undefined };
+  const conversations = useQuery({ queryKey: ["conversations", { q, page }], queryFn: () => api<Page<ConversationRow>>("/conversations", { query }), placeholderData: keepPreviousData });
   const open = conversations.data?.items.find((c) => c.id === openId) ?? null;
-  const messages = useQuery({ queryKey: ["messages", openId], queryFn: () => api<MessageRow[]>(`/conversations/${openId}/messages`), enabled: Boolean(openId) });
+  const messages = useQuery({ queryKey: ["messages", openId], queryFn: () => api<MessageRow[]>(`/conversations/${openId}/messages`, { query: { reason: reason.trim() || undefined } }), enabled: Boolean(openId) });
 
   const remove = useMutation({
     mutationFn: (id: string) => api(`/messages/${id}`, { method: "DELETE" }),
@@ -61,6 +63,7 @@ export function ChatsPage() {
               <Search className="pointer-events-none absolute top-2.5 left-2.5 h-4 w-4 text-slate-400" />
               <Input value={search} onChange={(e) => { setSearch(e.target.value); setPage(1); }} placeholder="Search a group or a person" className="pl-8" aria-label="Search conversations" />
             </div>
+            <Input value={reason} onChange={(e) => setReason(e.target.value)} maxLength={200} placeholder="Why are you reading? (kept in the audit log)" aria-label="Reason for reading" className="mt-2" />
           </div>
           {conversations.isLoading ? (
             <Spinner />

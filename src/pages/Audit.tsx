@@ -43,6 +43,7 @@ export function AuditPage() {
             <option value="message.">Chat moderation</option>
             <option value="admin.">Admin accounts</option>
             <option value="security.">Security alerts (suspicious reading)</option>
+            <option value="data.">Data access (exports, chat reads)</option>
           </Select>
         </div>
         {log.isLoading ? (

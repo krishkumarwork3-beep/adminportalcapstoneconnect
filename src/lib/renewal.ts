@@ -3,25 +3,54 @@
  *
  * `renew()` starts one refresh request; callers that ask while it is running share its answer, so
  * ten requests failing with 401 at once cause one POST /refresh, not ten (and a rotating refresh
- * token is never spent twice by the same page). When it fails, `onSignedOut` runs once.
+ * token is never spent twice by the same page).
+ *
+ * The refresh answers one of three things:
+ * - "ok": a new access token; the failed request is sent again.
+ * - "expired" (HTTP 401 only): the session is over; `onSignedOut` runs once.
+ * - "unavailable" (429, 5xx, offline): the session may well be fine. The user stays signed in,
+ *   the caller gets its original error, and no new refresh is tried until `retryAfter` seconds
+ *   have passed (the server's Retry-After, else a few seconds).
  */
-export function createRenewal(refresh: () => Promise<boolean>, onSignedOut: () => void): () => Promise<boolean> {
+export type RefreshResult = { state: "ok" } | { state: "expired" } | { state: "unavailable"; retryAfter?: number };
+
+export async function classifyRefresh(send: () => Promise<Response>): Promise<RefreshResult> {
+  try {
+    const answer = await send();
+    if (answer.ok) return { state: "ok" };
+    if (answer.status === 401) return { state: "expired" };
+    const wait = Number(answer.headers.get("retry-after"));
+    return { state: "unavailable", retryAfter: Number.isFinite(wait) && wait > 0 ? wait : undefined };
+  } catch {
+    return { state: "unavailable" };
+  }
+}
+
+const DEFAULT_BACKOFF_SECONDS = 5;
+
+export function createRenewal(
+  refresh: () => Promise<RefreshResult>,
+  onSignedOut: () => void,
+  now: () => number = () => Date.now()
+): () => Promise<boolean> {
   let running: Promise<boolean> | null = null;
+  let quietUntil = 0;
   return () => {
-    if (!running) {
-      running = refresh()
-        .catch(() => false)
-        .then((ok) => {
-          if (!ok) onSignedOut();
-          return ok;
-        })
-        .finally(() => {
-          // Everyone who started together got this answer; the next expiry starts a new renewal.
-          setTimeout(() => {
-            running = null;
-          }, 0);
-        });
-    }
+    if (running) return running;
+    if (now() < quietUntil) return Promise.resolve(false); // backing off: keep the session, report the error
+    running = refresh()
+      .catch((): RefreshResult => ({ state: "unavailable" }))
+      .then((result) => {
+        if (result.state === "expired") onSignedOut();
+        if (result.state === "unavailable") quietUntil = now() + (result.retryAfter ?? DEFAULT_BACKOFF_SECONDS) * 1000;
+        return result.state === "ok";
+      })
+      .finally(() => {
+        // Everyone who started together got this answer; the next expiry starts a new renewal.
+        setTimeout(() => {
+          running = null;
+        }, 0);
+      });
     return running;
   };
 }

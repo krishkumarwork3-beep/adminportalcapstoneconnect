@@ -16,7 +16,9 @@ function apiOrigin(mode: string): string {
  * end-to-end runs); anything else fails the build.
  */
 export function checkTransport(mode: string, apiBase: string | undefined): void {
-  if (mode !== "production" || !apiBase) return;
+  if (mode !== "production") return;
+  // Fail closed: no silent fallback to http://localhost in a production build.
+  if (!apiBase) throw new Error("VITE_API_BASE_URL is required in a production build");
   const url = new URL(apiBase);
   if (url.protocol === "http:" && !LOCAL_HOSTS.has(url.hostname)) {
     throw new Error(`VITE_API_BASE_URL must use https:// in a production build, got http://${url.host}`);

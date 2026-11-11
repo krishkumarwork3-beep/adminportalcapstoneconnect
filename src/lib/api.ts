@@ -1,9 +1,11 @@
 import { parseJson } from "./security/json";
-import { createRenewal, rememberSignedIn, sendWithRenewal } from "./renewal";
+import { classifyRefresh, createRenewal, rememberSignedIn, sendWithRenewal } from "./renewal";
 // Client for the CapstoneConnect admin API (/api/admin). The admin session is an httpOnly cookie,
 // so every request is sent with credentials and the portal never sees the token.
 
-export const API_BASE_URL = (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? "http://localhost:8000/api";
+// No localhost fallback in production builds (vite.config.ts refuses to build without the URL).
+export const API_BASE_URL =
+  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? (import.meta.env.PROD ? "" : "http://localhost:8000/api");
 /** The API's own origin (http://localhost:8000): its interactive docs live at /docs and /redoc. */
 export const API_ORIGIN = new URL(API_BASE_URL).origin;
 
@@ -31,12 +33,29 @@ export function buildUrl(path: string, query?: Query): string {
 export const SIGNED_OUT_EVENT = "capconnect-admin:signed-out";
 const NO_RETRY = /^\/auth\/(login|logout|logout-all|refresh)\b/;
 export const refreshSession = createRenewal(
-  () => fetch(buildUrl("/auth/refresh"), { method: "POST", credentials: "include" }).then((answer) => answer.ok),
+  () => classifyRefresh(() => fetch(buildUrl("/auth/refresh"), { method: "POST", credentials: "include" })),
   () => {
     rememberSignedIn(false);
     window.dispatchEvent(new Event(SIGNED_OUT_EVENT));
   },
 );
+
+/** A POST whose answer is a file (the CSV export): the body as a Blob, or ApiError. */
+export async function apiDownload(path: string, body: unknown): Promise<Blob> {
+  const send = () =>
+    fetch(buildUrl(path), { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  let response: Response;
+  try {
+    response = await sendWithRenewal(send, refreshSession, false);
+  } catch {
+    throw new ApiError(`Can't reach the API at ${API_ORIGIN}. Is the backend running?`, 0);
+  }
+  if (!response.ok) {
+    const data = await response.text().then((t) => (t ? parseJson<Record<string, string>>(t) : {})).catch(() => ({} as Record<string, string>));
+    throw new ApiError(data.message || `Request failed (${response.status})`, response.status);
+  }
+  return response.blob();
+}
 
 export async function api<T>(path: string, options: { method?: string; body?: unknown; query?: Query } = {}): Promise<T> {
   let response: Response;

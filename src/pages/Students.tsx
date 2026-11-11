@@ -2,7 +2,7 @@ import { useState, type FormEvent } from "react";
 import { keepPreviousData, useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { Download, Plus, Search, Trash2 } from "lucide-react";
-import { api, buildUrl, type Page, type Student, type StudentDetail } from "../lib/api";
+import { api, apiDownload, type Page, type Student, type StudentDetail } from "../lib/api";
 import { useAuth } from "../lib/auth";
 import { timeAgo } from "../lib/format";
 import { Badge, Button, Card, ConfirmDialog, EmptyState, ErrorNote, Field, Input, Modal, PageCheckbox, PageHeader, Pagination, Select, SelectionBar, Spinner, Table, Textarea, useDebounced, useSelection, useToast, friendlyError } from "../components/ui";
@@ -64,7 +64,23 @@ export function StudentsPage() {
   });
 
   const items = students.data?.items ?? [];
-  const exportUrl = buildUrl("/users/export.csv", { q, status, college });
+  // The export is a bulk copy of personal data: it asks for the admin's password again (and is
+  // limited and written to the audit log by the API).
+  const [exporting, setExporting] = useState(false);
+  const [exportPassword, setExportPassword] = useState("");
+  const exportCsv = useMutation({
+    mutationFn: () => apiDownload("/users/export.csv", { password: exportPassword, q: q || null, status, college: college || null }),
+    onSuccess: (blob) => {
+      const link = document.createElement("a");
+      link.href = URL.createObjectURL(blob);
+      link.download = `capstoneconnect-students-${new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "")}.csv`;
+      link.click();
+      URL.revokeObjectURL(link.href);
+      setExporting(false);
+      setExportPassword("");
+    },
+    onError: (e) => toast(friendlyError(e), "error"),
+  });
 
   return (
     <>
@@ -73,11 +89,26 @@ export function StudentsPage() {
         description="Every account on the site. Click a student to edit, reset their password, suspend or delete them."
         actions={
           <>
-            <a href={exportUrl}>
-              <Button>
+            {canEdit ? (
+              <Button onClick={() => setExporting(true)}>
                 <Download className="h-4 w-4" /> Export CSV
               </Button>
-            </a>
+            ) : null}
+            <Modal
+              open={exporting}
+              title="Export students as CSV"
+              onClose={() => setExporting(false)}
+              footer={
+                <Button variant="primary" disabled={!exportPassword || exportCsv.isPending} onClick={() => exportCsv.mutate()}>
+                  {exportCsv.isPending ? "Exporting…" : "Export"}
+                </Button>
+              }
+            >
+              <p className="mb-3 text-sm text-slate-600">A copy of students' personal data leaves the portal: enter your password again. The export is recorded in the audit log.</p>
+              <Field label="Your password">
+                {(id) => <Input id={id} type="password" autoComplete="current-password" value={exportPassword} onChange={(e) => setExportPassword(e.target.value)} />}
+              </Field>
+            </Modal>
             {canEdit ? (
               <Button variant="primary" onClick={() => setAdding(true)}>
                 <Plus className="h-4 w-4" /> Add student
