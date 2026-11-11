@@ -1,7 +1,9 @@
 // W5 (A4): a production build of the portal refuses a plain-http API off this machine.
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
+import os from "node:os";
 import path from "node:path";
+import { pathToFileURL } from "node:url";
 import { test } from "node:test";
 
 const ROOT = path.resolve(import.meta.dirname, "../..");
@@ -25,4 +27,17 @@ test("production fails closed without VITE_API_BASE_URL (no localhost fallback)"
   assert.notEqual(none.status, 0);
   assert.match(none.stderr, /VITE_API_BASE_URL is required/);
   assert.equal(check("development", "").status, 0);
+});
+
+test("only `vite build` runs the check; `vite preview` serves the finished build", () => {
+  // Run from an empty folder so no .env file supplies VITE_API_BASE_URL.
+  const config = pathToFileURL(path.join(ROOT, "vite.config.ts")).href;
+  const run = (command: string) => spawnSync(process.execPath, ["--input-type=module", "-e",
+    `const m = await import(${JSON.stringify(config)}); m.default({ mode: "production", command: ${JSON.stringify(command)} });`],
+    { cwd: os.tmpdir(), encoding: "utf8", env: { ...process.env, VITE_API_BASE_URL: "" } });
+  const build = run("build");
+  assert.notEqual(build.status, 0);
+  assert.match(build.stderr, /VITE_API_BASE_URL is required/);
+  const preview = run("serve");
+  assert.equal(preview.status, 0, preview.stderr);
 });

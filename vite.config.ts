@@ -80,8 +80,9 @@ function cspMeta(api: string): Plugin {
   };
 }
 
-export default defineConfig(({ mode }) => {
-  checkTransport(mode, loadEnv(mode, ".", "VITE_").VITE_API_BASE_URL);
+export default defineConfig(({ mode, command }) => {
+  // Only `vite build` bakes the API address in; `vite preview` serves a finished build.
+  if (command === "build") checkTransport(mode, loadEnv(mode, ".", "VITE_").VITE_API_BASE_URL);
   const api = apiOrigin(mode);
   return {
     plugins: [react(), tailwindcss(), cspMeta(api)],
