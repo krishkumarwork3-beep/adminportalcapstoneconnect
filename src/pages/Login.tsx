@@ -60,10 +60,7 @@ export function LoginPage() {
           <div role="note" className="mb-5 flex gap-2.5 rounded-lg border border-orange-200 bg-orange-50 px-3 py-2.5 text-xs text-slate-700">
             <FlaskConical className="mt-0.5 h-4 w-4 shrink-0 text-orange-500" aria-hidden="true" />
             <div className="space-y-2">
-              <p>
-                <span className="font-semibold text-slate-900">This portal is in demo mode right now.</span> It runs on sample
-                students and groups with no backend, and anything you change is kept only in this browser.
-              </p>
+              <p className="font-semibold text-slate-900">This portal is in demo mode.</p>
               <p className="text-slate-600">
                 Demo login: <span className="font-medium text-slate-900">{DEMO_ADMIN.email}</span>, password{" "}
                 <span className="font-medium text-slate-900">{DEMO_ADMIN.password}</span>

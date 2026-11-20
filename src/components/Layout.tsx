@@ -61,7 +61,6 @@ export function Layout() {
         {import.meta.env.VITE_DEMO_MODE === "true" ? (
           <div className="mx-3 mt-3 rounded-md border border-orange-400/30 bg-orange-400/10 px-3 py-2 text-[11px] text-orange-100">
             <p className="font-semibold text-orange-200">Demo mode</p>
-            <p>Sample data, no backend. Changes stay in this browser.</p>
             <button
               onClick={async () => {
                 const { resetDemo } = await import("../lib/demo/server");
@@ -70,7 +69,7 @@ export function Layout() {
               }}
               className="mt-1 text-orange-200 underline underline-offset-2 hover:text-white"
             >
-              Reset the sample data
+              Reset demo data
             </button>
           </div>
         ) : null}

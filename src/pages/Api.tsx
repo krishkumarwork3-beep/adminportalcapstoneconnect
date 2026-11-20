@@ -32,9 +32,9 @@ function DemoApiPage() {
       <Card title="Backend">
         <div className="space-y-2 p-4 text-sm text-slate-700">
           <p className="flex items-center gap-2">
-            <Badge tone="orange">Demo mode</Badge> No backend is connected.
+            <Badge tone="orange">Demo mode</Badge>
           </p>
-          <p>This portal is running on sample data in your browser, so there are no API docs to open. Connect it to the backend to use this page.</p>
+          <p>The API docs aren't available in demo mode.</p>
         </div>
       </Card>
     </>
