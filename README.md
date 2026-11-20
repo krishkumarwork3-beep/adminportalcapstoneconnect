@@ -85,6 +85,15 @@ your admin session works there too: every admin endpoint can be tried directly. 
 endpoints, run `POST /api/auth/login` with a student's phone and password first (seeded students use
 `password123`). These calls change the real database.
 
+## Demo mode (no backend)
+
+`VITE_DEMO_MODE=true npm run build` builds the portal on sample data in the browser (the backend's
+seed students and groups, plus sample reports, announcements and audit entries): no API is called
+and `VITE_API_BASE_URL` is not needed. The log-in page says so and offers the demo admin
+(`demo@capstoneconnect.app` / `demo-admin-2026`); changes stay in that browser. On Vercel,
+`vercel.json` builds demo mode unless the project sets `VITE_DEMO_MODE=false` (then it needs
+`VITE_API_BASE_URL`). Real builds don't contain the demo code or data.
+
 ## Production
 
 - `VITE_API_BASE_URL=https://api.example.com/api npm run build` produces a static site in `dist/`;

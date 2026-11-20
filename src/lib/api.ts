@@ -3,11 +3,30 @@ import { classifyRefresh, createRenewal, rememberSignedIn, sendWithRenewal } fro
 // Client for the CapstoneConnect admin API (/api/admin). The admin session is an httpOnly cookie,
 // so every request is sent with credentials and the portal never sees the token.
 
-// No localhost fallback in production builds (vite.config.ts refuses to build without the URL).
-export const API_BASE_URL =
-  (import.meta.env.VITE_API_BASE_URL as string | undefined) ?? (import.meta.env.PROD ? "" : "http://localhost:8000/api");
+/**
+ * Demo mode (VITE_DEMO_MODE=true at build time): no backend at all. Every call below is answered
+ * in this browser from sample data (lib/demo/server.ts) and nothing is sent over the network.
+ */
+export const DEMO_MODE = import.meta.env.VITE_DEMO_MODE === "true";
+
+// No localhost fallback in production builds (vite.config.ts refuses to build without the URL,
+// except in demo mode, which never uses it).
+export const API_BASE_URL = DEMO_MODE
+  ? "http://localhost:8000/api"
+  : ((import.meta.env.VITE_API_BASE_URL as string | undefined) ?? (import.meta.env.PROD ? "" : "http://localhost:8000/api"));
 /** The API's own origin (http://localhost:8000): its interactive docs live at /docs and /redoc. */
 export const API_ORIGIN = new URL(API_BASE_URL).origin;
+
+async function demoCall<T>(path: string, method: string, query?: Query, body?: unknown): Promise<T> {
+  // Loaded only here, behind DEMO_MODE: real builds drop it, so the sample data never ships.
+  const { demoApi, DemoError } = await import("./demo/server");
+  try {
+    return (await demoApi(path, method, query, body)) as T;
+  } catch (error) {
+    if (error instanceof DemoError) throw new ApiError(error.userMessage, error.status);
+    throw error;
+  }
+}
 
 export class ApiError extends Error {
   constructor(message: string, readonly status: number) {
@@ -42,6 +61,7 @@ export const refreshSession = createRenewal(
 
 /** A POST whose answer is a file (the CSV export): the body as a Blob, or ApiError. */
 export async function apiDownload(path: string, body: unknown): Promise<Blob> {
+  if (DEMO_MODE) return demoCall<Blob>(path, "POST", undefined, body);
   const send = () =>
     fetch(buildUrl(path), { method: "POST", credentials: "include", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
   let response: Response;
@@ -58,6 +78,7 @@ export async function apiDownload(path: string, body: unknown): Promise<Blob> {
 }
 
 export async function api<T>(path: string, options: { method?: string; body?: unknown; query?: Query } = {}): Promise<T> {
+  if (DEMO_MODE) return demoCall<T>(path, options.method ?? "GET", options.query, options.body);
   let response: Response;
   const send = () =>
     fetch(buildUrl(path, options.query), {

@@ -41,3 +41,13 @@ test("only `vite build` runs the check; `vite preview` serves the finished build
   const preview = run("serve");
   assert.equal(preview.status, 0, preview.stderr);
 });
+
+test("a demo build (VITE_DEMO_MODE=true) needs no API address and allows no outside API", () => {
+  const config = pathToFileURL(path.join(ROOT, "vite.config.ts")).href;
+  const script = `const m = await import(${JSON.stringify(config)}); const c = m.default({ mode: "production", command: "build" }); console.log(JSON.stringify(c.preview.headers));`;
+  const demo = spawnSync(process.execPath, ["--input-type=module", "-e", script],
+    { cwd: os.tmpdir(), encoding: "utf8", env: { ...process.env, VITE_API_BASE_URL: "", VITE_DEMO_MODE: "true" } });
+  assert.equal(demo.status, 0, demo.stderr);
+  // Only this site: no API origin in the policy.
+  assert.doesNotMatch(demo.stdout, /localhost:8000|https?:\/\/[a-z]/);
+});

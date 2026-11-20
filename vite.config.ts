@@ -4,8 +4,15 @@ import tailwindcss from "@tailwindcss/vite";
 
 const LOCAL_HOSTS = new Set(["localhost", "127.0.0.1", "[::1]"]);
 
+/** Demo mode (VITE_DEMO_MODE=true): the portal runs on sample data in the browser, no API. */
+function isDemo(mode: string): boolean {
+  return loadEnv(mode, ".", "VITE_").VITE_DEMO_MODE === "true";
+}
+
 /** The API's origin, from the same variable the app uses (src/lib/api.ts). */
 function apiOrigin(mode: string): string {
+  // Demo builds call no API: the policy allows this site only.
+  if (isDemo(mode)) return "'self'";
   const env = loadEnv(mode, ".", "VITE_");
   return new URL(env.VITE_API_BASE_URL || "http://localhost:8000/api").origin;
 }
@@ -82,7 +89,8 @@ function cspMeta(api: string): Plugin {
 
 export default defineConfig(({ mode, command }) => {
   // Only `vite build` bakes the API address in; `vite preview` serves a finished build.
-  if (command === "build") checkTransport(mode, loadEnv(mode, ".", "VITE_").VITE_API_BASE_URL);
+  // Demo builds need no API address (and ignore one if set).
+  if (command === "build" && !isDemo(mode)) checkTransport(mode, loadEnv(mode, ".", "VITE_").VITE_API_BASE_URL);
   const api = apiOrigin(mode);
   return {
     plugins: [react(), tailwindcss(), cspMeta(api)],

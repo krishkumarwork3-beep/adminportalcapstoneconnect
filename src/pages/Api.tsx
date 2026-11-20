@@ -20,6 +20,28 @@ function useHealth() {
 }
 
 export function ApiPage() {
+  if (import.meta.env.VITE_DEMO_MODE === "true") return <DemoApiPage />;
+  return <LiveApiPage />;
+}
+
+/** Demo builds have no backend to check or document. */
+function DemoApiPage() {
+  return (
+    <>
+      <PageHeader title="API & docs" description="Test the backend's endpoints with FastAPI's interactive docs." />
+      <Card title="Backend">
+        <div className="space-y-2 p-4 text-sm text-slate-700">
+          <p className="flex items-center gap-2">
+            <Badge tone="orange">Demo mode</Badge> No backend is connected.
+          </p>
+          <p>This portal is running on sample data in your browser, so there are no API docs to open. Connect it to the backend to use this page.</p>
+        </div>
+      </Card>
+    </>
+  );
+}
+
+function LiveApiPage() {
   const health = useHealth();
   const links = [
     { label: "Swagger UI", href: `${API_ORIGIN}/docs`, note: "Try every endpoint in the browser" },

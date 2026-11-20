@@ -58,6 +58,22 @@ export function Layout() {
             <X className="h-5 w-5" />
           </button>
         </div>
+        {import.meta.env.VITE_DEMO_MODE === "true" ? (
+          <div className="mx-3 mt-3 rounded-md border border-orange-400/30 bg-orange-400/10 px-3 py-2 text-[11px] text-orange-100">
+            <p className="font-semibold text-orange-200">Demo mode</p>
+            <p>Sample data, no backend. Changes stay in this browser.</p>
+            <button
+              onClick={async () => {
+                const { resetDemo } = await import("../lib/demo/server");
+                resetDemo();
+                window.location.assign("/login");
+              }}
+              className="mt-1 text-orange-200 underline underline-offset-2 hover:text-white"
+            >
+              Reset the sample data
+            </button>
+          </div>
+        ) : null}
         <div className="flex-1 overflow-y-auto">{nav}</div>
         <div className="border-t border-slate-800 p-3 text-xs text-slate-400">
           <p className="truncate font-medium text-slate-200">{admin?.name}</p>
@@ -80,6 +96,7 @@ export function Layout() {
           <Menu className="h-5 w-5" />
         </Button>
         <span className="ml-2 text-sm font-semibold">CapstoneConnect Admin</span>
+        {import.meta.env.VITE_DEMO_MODE === "true" ? <span className="ml-2"><Badge tone="orange">Demo mode</Badge></span> : null}
       </header>
 
       <main className="mx-auto max-w-7xl p-4 sm:p-6">
